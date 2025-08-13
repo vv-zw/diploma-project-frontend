@@ -1,0 +1,109 @@
+/* pages/add/add.wxss */
+.container {
+  padding: 20rpx 30rpx;
+  background-color: #f9f9f9;
+  min-height: 100vh;
+}
+
+.form-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin: 30rpx 0 50rpx;
+}
+
+.input-item {
+  display: flex;
+  margin-bottom: 30rpx;
+  padding: 20rpx;
+  background-color: #fff;
+  border-radius: 10rpx;
+  align-items: flex-start;
+}
+
+.label {
+  font-size: 28rpx;
+  color: #666;
+  width: 140rpx;
+  padding-top: 5rpx;
+}
+
+.input-field, .picker-field, .textarea-field {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  padding: 5rpx 0;
+}
+
+.picker-display {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.textarea-field {
+  min-height: 120rpx;
+  line-height: 1.6;
+}
+
+.elements-section {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: 140rpx;
+  width: calc(100% - 140rpx);
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  margin-right: 25rpx;
+  margin-bottom: 15rpx;
+  font-size: 26rpx;
+}
+
+.checkbox-item checkbox {
+  margin-right: 8rpx;
+  transform: scale(0.8);
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 50rpx;
+  padding: 0 20rpx;
+}
+
+.back-btn, .save-btn {
+  width: 48%;
+  height: 90rpx;
+  line-height: 90rpx;
+  font-size: 30rpx;
+  border-radius: 10rpx;
+}
+
+.back-btn {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.save-btn {
+  background-color: #07c160;
+  color: #fff;
+}
+
+/* 复选框样式 - 使用类选择器避免标签选择器 */
+.checkbox-checked .wx-checkbox-input-checked {
+  background-color: #07c160 !important;
+  border-color: #07c160 !important;
+}
+
+/* 修复WXSS不允许标签选择器的问题 */
+.checkbox-item .wx-checkbox-input {
+  width: 30rpx !important;
+  height: 30rpx !important;
+}

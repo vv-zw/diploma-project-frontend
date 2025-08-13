@@ -1,0 +1,73 @@
+<!-- pages/movieRecommend/movieRecommend.wxml -->
+<view class="container">
+  <!-- 头部区域 -->
+  <view class="header">
+    <text class="title">电影推荐</text>
+    <button class="refresh-btn" bindtap="refreshRecommendations">
+      <image src="/images/refresh.png" class="refresh-icon"></image>
+      刷新
+    </button>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading" wx:if="{{loading}}">
+    <image src="/images/loading.gif" class="loading-icon"></image>
+    <text>加载推荐中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error" wx:if="{{!loading && error}}">
+    <text class="error-text">{{error}}</text>
+    <button class="retry-btn" bindtap="refreshRecommendations">重试</button>
+  </view>
+
+  <!-- 空数据状态 -->
+  <view class="empty" wx:if="{{!loading && !error && gridList.length === 0}}">
+    <image src="/images/empty.png" class="empty-icon"></image>
+    <text>暂无推荐电影</text>
+    <text class="empty-tip">添加喜欢的电影，获取个性化推荐</text>
+    <button class="go-add-btn" bindtap="goToAddMovie">去添加</button>
+  </view>
+
+  <!-- 网格布局：每行3个电影 -->
+  <view class="grid-container" wx:if="{{!loading && !error && gridList.length > 0}}">
+    <view class="grid-row" wx:for="{{gridList}}" wx:for-index="rowIdx" wx:for-item="row" wx:key="rowIdx">
+      <view class="movie-item" 
+        wx:for="{{row}}" 
+        wx:for-index="colIdx" 
+        wx:for-item="movie" 
+        wx:key="id"
+        bindtap="goToDetail"
+        data-id="{{id}}"
+      >
+        <!-- 电影图片 -->
+        <image 
+          class="movie-img" 
+          src="{{movie.cover_url || '/images/default_movie.png'}}" 
+          mode="widthFix"
+          lazy-load="true"
+          binderror="onImageError"
+          data-id="{{movie.id}}"
+        ></image>
+        
+        <!-- 电影信息 -->
+        <view class="movie-info">
+          <text class="movie-title">{{movie.title}}</text>
+          
+          <!-- 新增：电影类型 -->
+          <view class="movie-genres">
+            <text wx:for="{{movie.genres}}" wx:for-item="genre" wx:key="genre" class="genre-tag">
+              {{genre}}
+            </text>
+          </view>
+          
+          
+          <view class="movie-meta">
+            <text class="rating">评分：{{movie.rating || '暂无'}}</text>
+            <text class="similarity" wx:if="{{movie.similarity}}">匹配度：{{movie.similarity}}%</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

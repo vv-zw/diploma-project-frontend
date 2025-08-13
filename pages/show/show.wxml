@@ -1,0 +1,45 @@
+<!-- pages/show/show.wxml -->
+<view class="container">
+  <view class="header">
+    <text class="title">剧集列表</text>
+  </view>
+  
+  <view class="list-container">
+    <!-- 无数据时显示 -->
+    <view wx:if="{{showList.length === 0}}" class="empty-state">
+      <image src="/images/empty.png" mode="aspectFit" class="empty-image"></image>
+      <text class="empty-text">暂无剧集数据</text>
+    </view>
+    
+    <!-- 有数据时显示列表 -->
+    <view wx:else class="item-list">
+      <view class="item" wx:for="{{showList}}" wx:key="id">
+        <view class="item-content">
+          <!-- 剧集名称 -->
+          <view class="name">{{item.name}}</view>
+          
+          <!-- 类型和评分 -->
+          <view class="info">
+            <text class="type">{{item.type}}</text>
+            <text class="score">评分：{{item.score}}星</text>
+          </view>
+          
+          <!-- 核心：显示多选的元素（在评分下方） -->
+          <view class="elements">
+  <text class="elements-label">类型：</text>
+  <!-- 直接显示数组，不使用 join() 测试 -->
+  <text class="elements-value">{{item.selectedElements}}</text>
+</view>
+          
+          <!-- 影评 -->
+          <view class="comment">影评：{{item.comment}}</view>
+        </view>
+        
+        <!-- 删除按钮 -->
+        <button bindtap="deleteShow" data-id="{{item.id}}" class="delete-btn">
+          删除
+        </button>
+      </view>
+    </view>
+  </view>
+</view>

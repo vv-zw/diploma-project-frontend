@@ -1,0 +1,42 @@
+<!--pages/setting/setting.wxml-->
+<text>pages/setting/setting.wxml</text>
+<view class="setting-container {{theme === 'dark' ? 'dark-theme' : ''}}">
+  <!-- 顶部导航 -->
+  <view class="setting-header">
+    <text class="back-btn" bindtap="goBack">◀</text>
+    <text class="header-title">设置</text>
+  </view>
+
+  <!-- 设置项 -->
+  <view class="setting-group">
+    <view class="setting-item">
+      <text class="item-label">深色模式</text>
+      <switch class="item-switch" checked="{{theme === 'dark'}}" bindchange="toggleTheme" />
+    </view>
+    
+    <view class="setting-item">
+      <text class="item-label">接收通知</text>
+      <switch class="item-switch" checked="{{notifications}}" bindchange="toggleNotifications" />
+    </view>
+    
+    <view class="setting-item">
+      <text class="item-label">推荐模式</text>
+      <picker class="item-picker" mode="selector" range="{{['自动推荐', '手动筛选']}}" 
+              value="{{recommendMode === 'auto' ? 0 : 1}}" bindchange="changeRecommendMode">
+        <text class="item-value">{{recommendMode === 'auto' ? '自动推荐' : '手动筛选'}}</text>
+      </picker>
+    </view>
+    
+    <view class="setting-item" bindtap="clearCache">
+      <text class="item-label">清除缓存</text>
+      <text class="item-value">{{cacheSize}}</text>
+    </view>
+  </view>
+
+  <!-- 关于我们 -->
+  <view class="about-section">
+    <text class="about-title">关于我们</text>
+    <text class="about-version">版本号: v1.0.0</text>
+    <text class="about-desc">电影推荐小程序 © 2025</text>
+  </view>
+</view>

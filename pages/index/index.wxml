@@ -1,0 +1,50 @@
+<view class="container">
+  <!-- 筛选按钮 -->
+  <view class="filter">
+    <!-- 全部按钮 -->
+    <view class="btn-group-top">
+      <button bindtap="showAll" class="active">全部</button>
+    </view>
+    
+    <!-- 分类按钮 -->
+    <view class="btn-group-bottom">
+      <view class="btn-row">
+        <button bindtap="filterMovie">🎬电影</button>
+        <button bindtap="filterShow">📺剧集</button>
+      </view>
+      <view class="btn-row">
+        <button bindtap="filterReaction">🎤 综艺</button>
+        <button bindtap="filterAlready">👀 待看清单</button> <!-- 绑定到already页面 -->
+      </view>
+    </view>
+    
+    <!-- 推荐页按钮 -->
+    <view class="btn-center">
+      <button bindtap="goToRecommend">进入推荐页</button>
+    </view>
+  </view>
+
+  <!-- 欢迎文本 -->
+  <text class="welcome">欢迎使用电影推荐小程序!</text>
+
+  <!-- 影视列表 -->
+  <view class="list">
+    <block wx:for="{{movieList}}" wx:key="id">
+      <view class="item">
+        <text class="name">{{item.name}}</text>
+        <text class="score">评分：{{item.score}}星</text>
+        <text class="type">{{item.type}}</text>
+        <text class="comment">{{item.comment}}</text>
+        <button class="delete" bindtap="deleteItem" data-id="{{item.id}}">删除</button>
+      </view>
+    </block>
+  </view>
+
+  <!-- 空数据提示 -->
+  <!-- <view wx:if="{{movieList.length === 0}}" class="empty">
+    暂无记录，去添加吧~
+  </view> -->
+
+  <!-- 底部添加按钮 -->
+  <button class="add-btn" bindtap="goAdd">+ 添加影视</button>
+</view>

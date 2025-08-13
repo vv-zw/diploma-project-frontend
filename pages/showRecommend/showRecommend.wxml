@@ -1,0 +1,71 @@
+<view class="container">
+  <!-- 头部区域 -->
+  <view class="header">
+    <text class="title">剧集推荐</text>
+    <button class="refresh-btn" bindtap="refreshRecommendations">
+      <image src="/images/refresh.png" class="refresh-icon"></image>
+      刷新
+    </button>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading" wx:if="{{loading}}">
+    <image src="/images/loading.gif" class="loading-icon"></image>
+    <text>加载推荐中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error" wx:if="{{!loading && error}}">
+    <text class="error-text">{{error}}</text>
+    <button class="retry-btn" bindtap="refreshRecommendations">重试</button>
+  </view>
+
+  <!-- 空数据状态 -->
+  <view class="empty" wx:if="{{!loading && !error && gridList.length === 0}}">
+    <image src="/images/empty.png" class="empty-icon"></image>
+    <text>暂无推荐剧集</text>
+    <text class="empty-tip">添加喜欢的剧集，获取个性化推荐</text>
+    <button class="go-add-btn" bindtap="goToAddSeries">去添加</button>
+  </view>
+
+  <!-- 网格布局：每行3个剧集 -->
+  <view class="grid-container" wx:if="{{!loading && !error && gridList.length > 0}}">
+    <view class="grid-row" wx:for="{{gridList}}" wx:for-index="rowIdx" wx:for-item="row" wx:key="rowIdx">
+      <view class="movie-item" 
+        wx:for="{{row}}" 
+        wx:for-index="colIdx" 
+        wx:for-item="series" 
+        wx:key="id"
+        bindtap="goToDetail"
+        data-id="{{id}}"
+      >
+        <!-- 剧集图片 -->
+        <image 
+          class="movie-img" 
+          src="{{series.cover_url || '/images/default_series.png'}}" 
+          mode="widthFix"
+          lazy-load="true"
+          binderror="onImageError"
+          data-id="{{series.id}}"
+        ></image>
+        
+        <!-- 剧集信息 -->
+        <view class="movie-info">
+          <text class="movie-title">{{series.title}}</text>
+          
+          <!-- 剧集类型 -->
+          <view class="movie-genres">
+            <text wx:for="{{series.genres}}" wx:for-item="genre" wx:key="genre" class="genre-tag">
+              {{genre}}
+            </text>
+          </view>
+          
+          <view class="movie-meta">
+            <text class="rating">评分：{{series.rating || '暂无'}}</text>
+            <text class="similarity" wx:if="{{series.similarity}}">匹配度：{{series.similarity}}%</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

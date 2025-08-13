@@ -1,0 +1,92 @@
+/* pages/setting/setting.wxss */
+.setting-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: 30rpx;
+}
+
+.dark-theme {
+  background-color: #1c1c1c;
+  color: #fff;
+}
+
+.setting-header {
+  display: flex;
+  align-items: center;
+  height: 100rpx;
+  padding: 0 30rpx;
+  background-color: #fff;
+  border-bottom: 1rpx solid #eee;
+}
+
+.dark-theme .setting-header {
+  background-color: #2c2c2c;
+  border-bottom: 1rpx solid #333;
+}
+
+.back-btn {
+  font-size: 40rpx;
+  margin-right: 20rpx;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.setting-group {
+  background-color: #fff;
+  margin-top: 20rpx;
+}
+
+.dark-theme .setting-group {
+  background-color: #2c2c2c;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.dark-theme .setting-item {
+  border-bottom: 1rpx solid #333;
+}
+
+.item-label {
+  font-size: 32rpx;
+}
+
+.item-value {
+  font-size: 30rpx;
+  color: #666;
+}
+
+.item-switch {
+  transform: scale(0.8);
+}
+
+.about-section {
+  margin-top: 50rpx;
+  text-align: center;
+  padding: 30rpx;
+}
+
+.about-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 15rpx;
+}
+
+.about-version {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+}
+
+.about-desc {
+  font-size: 26rpx;
+  color: #999;
+}

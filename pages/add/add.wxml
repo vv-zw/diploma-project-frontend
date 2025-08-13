@@ -1,0 +1,43 @@
+<view class="container">
+  <view class="form-title">添加影视记录</view>
+  
+  <view class="input-item">
+    <text class="label">名称：</text>
+    <input class="input-field" placeholder="请输入影视名称" bindinput="inputName" value="{{name}}" />
+  </view>
+
+  <view class="input-item">
+    <text class="label">类型：</text>
+    <picker class="picker-field" value="{{typeIndex}}" range="{{types}}" bindchange="changeType">
+      <view class="picker-display">{{types[typeIndex]}}</view>
+    </picker>
+  </view>
+
+  <view class="input-item">
+    <text class="label">评分：</text>
+    <!-- 修复：绑定scoreIndex变量 -->
+    <picker class="picker-field" value="{{scoreIndex}}" range="{{scores}}" bindchange="changeScore">
+      <view class="picker-display">{{score}}星</view>
+    </picker>
+  </view>
+
+  <view class="input-item elements-section" wx:if="{{showElements}}">
+    <text class="label">分类：</text>
+    <checkbox-group bindchange="checkboxChange" class="checkbox-group">
+      <label class="checkbox-item" wx:for="{{elements}}" wx:key="*this">
+        <checkbox value="{{item}}" />
+        <text>{{item}}</text>
+      </label>
+    </checkbox-group>
+  </view>
+
+  <view class="input-item">
+    <text class="label">短评：</text>
+    <textarea class="textarea-field" placeholder="说点什么..." bindinput="inputComment" value="{{comment}}" auto-height />
+  </view>
+
+  <view class="button-group">
+    <button class="back-btn" bindtap="goBack">返回</button>
+    <button class="save-btn" bindtap="save">保存</button>
+  </view>
+</view>

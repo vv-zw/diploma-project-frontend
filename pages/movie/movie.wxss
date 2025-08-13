@@ -1,0 +1,94 @@
+/* 与show.wxss完全一致，未做任何样式修改 */
+.container {
+  padding: 16px;
+  background-color: #f8f8f8;
+  min-height: 100vh;
+}
+
+.header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+.list-container {
+  margin-top: 16px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.empty-image {
+  width: 100px;
+  height: 100px;
+  opacity: 0.5;
+  margin-bottom: 12px;
+}
+
+.empty-text {
+  color: #999;
+  font-size: 14px;
+}
+
+.item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.item-content {
+  margin-bottom: 12px;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.info {
+  display: flex;
+  gap: 16px;
+  color: #f7ba1e;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.elements {
+  font-size: 14px;
+  color: #666;
+  margin: 10rpx 0;
+  padding: 5rpx 0;
+  border-top: 1px dashed #eee;  /* 用虚线分隔元素区域，更清晰 */
+}
+.comment {
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.delete-btn {
+  color: #ff4d4f;
+  border: 1px solid #ff4d4f;
+  border-radius: 4px;
+  padding: 4px 0;
+  text-align: center;
+  font-size: 14px;
+}
