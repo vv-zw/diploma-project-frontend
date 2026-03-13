@@ -4,39 +4,55 @@
   </view>
   
   <view class="list-container">
-    <!-- 无数据时显示（与电影页完全一致） -->
     <view wx:if="{{alreadyList.length === 0}}" class="empty-state">
-      <image src="/images/empty.png" mode="aspectFit" class="empty-image"></image>
-      <text class="empty-text">暂无待看数据</text>
+      <text class="empty-text">暂无待看内容</text>
     </view>
     
-    <!-- 有数据时显示列表（与电影页完全一致） -->
-    <view wx:else class="item-list">
-      <view class="item" wx:for="{{alreadyList}}" wx:key="id">
-        <view class="item-content">
-          <!-- 名称 -->
-          <view class="name">{{item.name}}</view>
-          
-          <!-- 类型和评分 -->
-          <view class="info">
-            <text class="type">{{item.type}}</text>
-            <text class="score">评分：{{item.score}}星</text>
+    <view wx:else class="grid-list">
+      <view class="grid-row" wx:for="{{rowCount}}" wx:for-index="rowIndex" wx:key="rowIndex">
+        <!-- 第一列 -->
+        <view class="grid-col">
+          <view class="item" wx:if="{{rowIndex * 2 < alreadyList.length}}">
+            <image 
+              class="poster" 
+              src="{{alreadyList[rowIndex * 2].coverUrl || 'https://via.placeholder.com/150x220?text=No+Image'}}"
+              mode="aspectFill"
+            ></image>
+            
+            <view class="info">
+              <text class="name">{{alreadyList[rowIndex * 2].name}}</text>
+              <view class="tags">
+                <text wx:for="{{alreadyList[rowIndex * 2].selectedElements}}" wx:key="index" class="tag">{{item}}</text>
+              </view>
+            </view>
+            
+            <button bindtap="deleteAlready" data-id="{{alreadyList[rowIndex * 2].id}}" class="delete-btn">
+              删除
+            </button>
           </view>
-          
-          <!-- 显示多选的元素（与电影页完全一致） -->
-          <view class="elements">
-            <text class="elements-label">类型：</text>
-            <text class="elements-value">{{item.selectedElements}}</text>
-          </view>
-          
-          <!-- 影评 -->
-          <view class="comment">影评：{{item.comment}}</view>
         </view>
         
-        <!-- 删除按钮（方法名与电影页一致） -->
-        <button bindtap="deleteAlready" data-id="{{item.id}}" class="delete-btn">
-          删除
-        </button>
+        <!-- 第二列 -->
+        <view class="grid-col">
+          <view class="item" wx:if="{{rowIndex * 2 + 1 < alreadyList.length}}">
+            <image 
+              class="poster" 
+              src="{{alreadyList[rowIndex * 2 + 1].coverUrl || 'https://via.placeholder.com/150x220?text=No+Image'}}"
+              mode="aspectFill"
+            ></image>
+            
+            <view class="info">
+              <text class="name">{{alreadyList[rowIndex * 2 + 1].name}}</text>
+              <view class="tags">
+                <text wx:for="{{alreadyList[rowIndex * 2 + 1].selectedElements}}" wx:key="index" class="tag">{{item}}</text>
+              </view>
+            </view>
+            
+            <button bindtap="deleteAlready" data-id="{{alreadyList[rowIndex * 2 + 1].id}}" class="delete-btn">
+              删除
+            </button>
+          </view>
+        </view>
       </view>
     </view>
   </view>

@@ -1,44 +1,115 @@
 <view class="container">
-  <view class="header">
-    <text class="title">电影列表</text>
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <input 
+      class="search-input" 
+      placeholder="请输入电影名称" 
+      value="{{searchName}}"
+      bindinput="onSearchInput"
+    />
+    <button class="search-btn" bindtap="searchMovie" wx:if="{{!loading}}">搜索</button>
+    <button class="search-btn" disabled wx:else>加载中...</button>
   </view>
   
-  <view class="list-container">
-    <!-- 无数据时显示 -->
-    <view wx:if="{{movieList.length === 0}}" class="empty-state">
-      <image src="/images/empty.png" mode="aspectFit" class="empty-image"></image>
-      <text class="empty-text">暂无电影数据</text>
+  <!-- 操作按钮栏 -->
+  <view class="top-bar">
+    <button class="batch-btn" bindtap="batchSearchMovies">批量查询</button>
+    <button class="delete-btn" bindtap="batchDelete" wx:if="{{selectedElements.length > 0}}">
+      批量删除({{selectedElements.length}})
+    </button>
+    <button class="clear-btn" bindtap="clearHistory">清空历史</button>
+  </view>
+  
+  <!-- 搜索结果卡片 -->
+  <view class="result-card" wx:if="{{searchResult}}">
+    <image 
+      class="result-poster" 
+      src="{{searchResult.coverUrl || '/images/default-movie.png'}}" 
+      mode="aspectFill"
+      lazy-load
+      fallback-src="/images/default-movie.png"
+    ></image>
+    <view class="result-info">
+      <view class="result-title">{{searchResult.title}}</view>
+      <view class="result-rating">评分：{{searchResult.rating}}</view>
+      <view class="result-genres">{{searchResult.genres}}</view>
+      <view class="result-year">年份：{{searchResult.year}}</view>
+      <view class="result-duration" wx:if="{{searchResult.duration}}">时长：{{searchResult.duration}}</view>
+      <view class="result-country" wx:if="{{searchResult.country}}">国家：{{searchResult.country}}</view>
+      <button class="save-btn" bindtap="saveToCollection">收藏电影</button>
     </view>
-    
-    <!-- 有数据时显示列表 -->
-    <view wx:else class="item-list">
-      <view class="item" wx:for="{{movieList}}" wx:key="id">
-        <view class="item-content">
-          <!-- 电影名称 -->
-          <view class="name">{{item.name}}</view>
-          
-          <!-- 类型和评分 -->
-          <view class="info">
-            <text class="type">{{item.type}}</text>
-            <text class="score">评分：{{item.score}}星</text>
-          </view>
-          
-          <!-- 核心：显示多选的元素（在评分下方） -->
-          <view class="elements">
-  <text class="elements-label">类型：</text>
-  <!-- 直接显示数组 -->
-  <text class="elements-value">{{item.selectedElements}}</text>
-</view>
-          
-          <!-- 影评 -->
-          <view class="comment">影评：{{item.comment}}</view>
-        </view>
+  </view>
+  
+  <!-- 错误提示 -->
+  <view class="error-msg" wx:if="{{errorMsg}}">
+    {{errorMsg}}
+  </view>
+  
+  <!-- 加载状态 -->
+  <view class="loading" wx:if="{{loading || detailLoading}}">
+    <text>加载中...</text>
+  </view>
+  
+  <!-- 电影列表为空 -->
+  <view class="empty" wx:elif="{{movieList.length === 0 && !loading && !detailLoading}}">
+    <text>暂无电影数据，搜索添加吧</text>
+  </view>
+  
+  <!-- 电影网格列表 -->
+  <view class="movie-grid" wx:else>
+    <view class="movie-item" wx:for="{{movieList}}" wx:key="id">
+      <!-- 选择框 - 使用修复后的事件处理 -->
+      <checkbox 
+        class="selector" 
+        value="{{item.id || item.title}}" 
+        checked="{{selectedElements.indexOf(item.id || item.title) > -1}}"
+        bindtap="handleCheckboxTap"
+        data-value="{{item.id || item.title}}"
+      />
+      
+      <!-- 封面图 -->
+      <image 
+        class="cover-image" 
+        src="{{item.coverUrl || '/images/default-movie.png'}}" 
+        mode="aspectFill"
+        lazy-load
+        fallback-src="/images/default-movie.png"
+      ></image>
+      
+      <!-- 电影信息 -->
+      <view class="movie-info">
+        <text class="title">{{item.title || item.name}}</text>
+        <text class="rating">评分: {{item.rating || '暂无'}}</text>
+        <text class="genres">类型: {{item.genres || '未知'}}</text>
+        <text class="year">年份: {{item.year || '未知'}}</text>
         
-        <!-- 删除按钮 -->
-        <button bindtap="deleteMovie" data-id="{{item.id}}" class="delete-btn">
-          删除
-        </button>
       </view>
+      
+      <!-- 删除按钮 -->
+      <button 
+        class="item-delete-btn" 
+        bindtap="deleteMovie" 
+        data-id="{{item.id}}" 
+        data-name="{{item.name || item.title}}"
+      >
+        删除
+      </button>
+    </view>
+  </view>
+  
+  <!-- 历史记录 -->
+  <view class="history-section" wx:if="{{searchHistory.length > 0}}">
+    <view class="history-title">搜索历史</view>
+    <view class="history-list">
+      <text 
+        class="history-item" 
+        wx:for="{{searchHistory}}" 
+        wx:key="index"
+        data-name="{{item}}"
+        bindtap="selectFromHistory"
+      >
+        {{item}}
+      </text>
     </view>
   </view>
 </view>

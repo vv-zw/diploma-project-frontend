@@ -1,7 +1,7 @@
 // app.js (前端)
 App({
   globalData: {
-    backendUrl: 'https://pink-vans-join.loca.lt', // 确保与后端地址一致
+    backendUrl: 'http://localhost:5000', // 确保与后端地址一致
     userInfo: null
   },
   
