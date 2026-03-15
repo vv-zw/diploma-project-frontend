@@ -1,5 +1,4 @@
 <view class="container">
-  <!-- 顶部导航 -->
   <view class="nav-bar">
     <text class="page-title">智能推荐</text>
     <button class="refresh-btn" bindtap="refreshRecommendations" wx:if="{{activeTab === 'recommend'}}">
@@ -7,51 +6,46 @@
     </button>
   </view>
 
-  <!-- 标签切换 -->
   <view class="tab-bar">
     <view class="tab-item {{activeTab === 'recommend' ? 'active' : ''}}" data-tab="recommend" bindtap="switchTab">推荐</view>
     <view class="tab-item {{activeTab === 'search' ? 'active' : ''}}" data-tab="search" bindtap="switchTab">搜索</view>
     <view class="tab-item {{activeTab === 'watchlist' ? 'active' : ''}}" data-tab="watchlist" bindtap="switchTab">想看清单</view>
   </view>
 
-  <!-- 推荐页面 -->
   <view class="page-content" wx:if="{{activeTab === 'recommend'}}">
-    <!-- 加载中 -->
     <view class="loading-container" wx:if="{{loading}}">
       <text class="loading-text">加载中...</text>
     </view>
-    
-    <!-- 错误提示 -->
+
     <view class="error-container" wx:if="{{error}}">
       <text class="error-text">{{error}}</text>
       <button class="retry-btn" bindtap="fetchRecommendations">重试</button>
     </view>
-    
-    <!-- 推荐依据 -->
-    <view class="reason-container" wx:if="{{countWeights.genres && !loading && !error}}">
+
+    <view class="reason-container" wx:if="{{recommendReasons.length > 0 && !loading && !error}}">
       <text class="reason-title">为你推荐的理由：</text>
       <view class="tags-container">
-        <text class="tag-item" wx:for="{{countWeights.genres}}" wx:for-item="weight" wx:for-index="genre" wx:key="genre">
-          {{genre}} ({{weight}})
+        <text class="tag-item reason-item" wx:for="{{recommendReasons}}" wx:for-item="reason" wx:key="index">
+          {{reason}}
         </text>
       </view>
     </view>
-    
-    <!-- 推荐内容 -->
+
     <view class="grid-container" wx:if="{{gridList.length > 0 && !loading && !error}}">
       <view class="grid-row" wx:for="{{gridList}}" wx:for-item="row" wx:key="index">
-        <view class="grid-item" wx:for="{{row}}" wx:for-item="movie" wx:for-index="itemIndex" wx:key="id">
-          <image 
-            class="poster-img" 
-            src="{{movie.cover_url}}" 
-            mode="aspectFill" 
-            binderror="onImageError" 
+        <view class="grid-item" wx:for="{{row}}" wx:for-item="movie" wx:key="id">
+          <image
+            class="poster-img"
+            src="{{movie.cover_url}}"
+            mode="aspectFill"
+            binderror="onImageError"
             data-id="{{movie.id}}"
             bindtap="goToDetail"
           ></image>
           <text class="movie-title">{{movie.title}}</text>
           <text class="movie-rating">评分：{{movie.rating}}</text>
-          <text class="movie-genres">{{movie.genres.join(' / ')}}</text>
+          <text class="movie-genres">{{movie.genresText}}</text>
+          <text class="movie-match">推荐匹配度：{{movie.recommendMatchScore}}</text>
           <view class="action-buttons">
             <button class="action-btn watch-btn" bindtap="addToWatchlist" data-id="{{movie.id}}">想看</button>
             <button class="action-btn dislike-btn" bindtap="handleNegativeFeedback" data-id="{{movie.id}}">不感兴趣</button>
@@ -59,28 +53,26 @@
         </view>
       </view>
     </view>
-    
-    <!-- 空状态 -->
+
     <view class="empty-container" wx:if="{{!loading && !error && gridList.length === 0}}">
       <text class="empty-text">暂无推荐内容</text>
       <button class="empty-btn" bindtap="fetchRecommendations">获取推荐</button>
     </view>
   </view>
 
-  <!-- 搜索页面 -->
   <view class="page-content" wx:if="{{activeTab === 'search'}}">
     <view class="search-box">
-      <input 
-        class="search-input" 
-        placeholder="输入电影名称搜索" 
-        value="{{searchQuery}}" 
-        bindinput="onSearchInput" 
+      <input
+        class="search-input"
+        placeholder="输入电影名称搜索"
+        value="{{searchQuery}}"
+        bindinput="onSearchInput"
         bindconfirm="searchMovies"
       />
       <button class="search-btn" bindtap="searchMovies">搜索</button>
       <button class="clear-btn" bindtap="clearSearch" wx:if="{{searchQuery}}">清空</button>
     </view>
-    
+
     <view class="search-results" wx:if="{{showSearch}}">
       <view class="result-item" wx:for="{{searchResults}}" wx:for-item="movie" wx:key="id" bindtap="goToDetail" data-id="{{movie.id}}">
         <image class="result-poster" src="{{movie.cover_url}}" mode="aspectFill"></image>
@@ -91,13 +83,12 @@
         </view>
       </view>
     </view>
-    
+
     <view class="empty-container" wx:if="{{showSearch && searchResults.length === 0}}">
       <text class="empty-text">未找到相关电影</text>
     </view>
   </view>
 
-  <!-- 想看清单页面 -->
   <view class="page-content" wx:if="{{activeTab === 'watchlist'}}">
     <view class="watchlist-container">
       <view class="watchlist-item" wx:for="{{alreadyList}}" wx:for-item="movie" wx:key="id">
@@ -110,7 +101,7 @@
         <button class="delete-btn" bindtap="deleteAlready" data-id="{{movie.id}}">删除</button>
       </view>
     </view>
-    
+
     <view class="empty-container" wx:if="{{alreadyList.length === 0}}">
       <text class="empty-text">暂无想看清单</text>
       <button class="empty-btn" bindtap="goToAddMovie">添加电影</button>

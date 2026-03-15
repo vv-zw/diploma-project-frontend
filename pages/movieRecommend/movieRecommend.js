@@ -4,6 +4,7 @@ Page({
     loading: false,
     error: '',
     countWeights: {},
+    recommendReasons: [],
     syncStatus: '',
     searchQuery: '',
     searchResults: [],
@@ -18,48 +19,67 @@ Page({
     const eventChannel = this.getOpenerEventChannel();
     if (eventChannel) {
       eventChannel.on('sendRecommendData', (data) => {
-        this.processRecommendData(data.recommendList || data.data, data.countWeights);
+        this.processRecommendData(
+          data.recommendList || data.data,
+          data.countWeights || data.count_weights,
+          data.recommendReasons || data.recommend_reasons_summary
+        );
       });
     } else {
       this.fetchRecommendations();
     }
+
     this.loadAlreadyData();
   },
 
   onShow() {
-    if (this.data.activeTab === 'recommend' && !this.data.isRefreshing) {
-      if (!this.refreshTimer) {
-        this.refreshTimer = setTimeout(() => {
-          this.fetchRecommendations();
-          this.refreshTimer = null;
-        }, 300);
-      }
-    }
     this.loadAlreadyData();
+    if (this.data.activeTab === 'recommend' && !this.data.isRefreshing) {
+      this.fetchRecommendations();
+    }
   },
 
   onUnload() {
-    if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
-      this.refreshTimer = null;
-    }
     this.stopRefreshPolling();
   },
 
+  getBackendUrl() {
+    const app = getApp();
+    return (app && typeof app.getBackendUrl === 'function')
+      ? app.getBackendUrl()
+      : 'http://localhost:5000';
+  },
+
+  normalizeGenres(item) {
+    const rawGenres = item?.genres ?? item?.selectedElements ?? [];
+
+    if (Array.isArray(rawGenres)) {
+      return rawGenres.map((genre) => String(genre).trim()).filter(Boolean);
+    }
+
+    if (typeof rawGenres === 'string') {
+      return rawGenres
+        .split(/[,/|、，]/)
+        .map((genre) => genre.trim())
+        .filter(Boolean);
+    }
+
+    return [];
+  },
+
   loadAlreadyData() {
-    let alreadyData = wx.getStorageSync('alreadyList') || [];
-    alreadyData = alreadyData.map((item) => {
-      let elements = item.selectedElements || [];
-      if (typeof elements === 'string') {
-        elements = elements.split(',');
-      }
+    const alreadyData = (wx.getStorageSync('alreadyList') || []).map((item) => {
+      const genres = this.normalizeGenres(item);
       return {
         ...item,
-        selectedElements: elements,
-        title: item.title || item.name,
-        cover_url: item.cover_url || item.coverUrl
+        genres,
+        selectedElements: genres,
+        title: item.title || item.name || '未知影片',
+        cover_url: item.cover_url || item.coverUrl || '/images/default_movie.png',
+        coverUrl: item.cover_url || item.coverUrl || '/images/default_movie.png'
       };
     });
+
     this.setData({ alreadyList: alreadyData });
   },
 
@@ -71,14 +91,14 @@ Page({
     });
   },
 
-  processRecommendData(recommendList, countWeights) {
+  processRecommendData(recommendList, countWeights, recommendReasons) {
     const formattedList = this.formatMovieData(recommendList);
-    const gridList = this.formatToGrid(formattedList);
     this.setData({
-      gridList,
+      gridList: this.formatToGrid(formattedList),
       countWeights: countWeights || {},
+      recommendReasons: this.formatRecommendReasons(recommendReasons, countWeights),
       loading: false,
-      error: formattedList.length === 0 ? '暂无推荐数据，请添加观影偏好' : ''
+      error: formattedList.length ? '' : '暂无推荐数据，请先补充一些观影偏好'
     });
   },
 
@@ -86,64 +106,104 @@ Page({
     this.setData({ loading: true, error: '' });
 
     wx.request({
-      url: 'http://localhost:5000/get_recommend',
+      url: `${this.getBackendUrl()}/get_recommend`,
       data: { type: 'movie' },
       timeout: 10000,
       success: (res) => {
-        if (res.data.code === 0) {
-          this.processRecommendData(res.data.data, res.data.count_weights);
-        } else {
-          this.setData({
-            loading: false,
-            error: res.data.error || '获取推荐失败'
-          });
+        if (res.data && res.data.code === 0) {
+          this.processRecommendData(
+            res.data.data,
+            res.data.count_weights,
+            res.data.recommend_reasons_summary
+          );
+          return;
         }
+
+        this.setData({
+          loading: false,
+          error: (res.data && res.data.error) || '获取推荐失败'
+        });
       },
       fail: (err) => {
         console.error('获取推荐数据失败:', err);
         this.setData({
           loading: false,
-          error: '网络错误，无法获取推荐（请检查后端服务）'
+          error: '网络错误，暂时无法获取推荐'
         });
       }
     });
   },
 
   formatMovieData(list) {
-    if (!Array.isArray(list)) return [];
-    const batchId = Date.now();
+    if (!Array.isArray(list)) {
+      return [];
+    }
 
     return list.map((movie, index) => {
-      if (!movie) return null;
-
-      let genres = movie.genres || [];
-      if (typeof genres === 'string') {
-        genres = genres.split(',').map((genre) => genre.trim()).filter(Boolean);
-      } else if (!Array.isArray(genres)) {
-        genres = [];
+      if (!movie) {
+        return null;
       }
 
-      let rating = movie.rating || '暂无';
+      const genres = this.normalizeGenres(movie);
+      let rating = movie.rating;
       if (typeof rating === 'number') {
         rating = rating.toFixed(1);
       }
 
-      const coverUrl = movie.cover_url || '';
-      const uniqueId = movie.id || movie.movieId || `movie_${batchId}_${index}_${Math.random().toString(36).slice(2, 7)}`;
-
+      const coverUrl = movie.cover_url || movie.coverUrl || '/images/default_movie.png';
       return {
-        id: uniqueId,
-        title: movie.title || '未知影片',
-        rating,
-        cover_url: coverUrl || '/images/default_movie.png',
-        coverUrl: coverUrl || '/images/default_movie.png',
+        ...movie,
+        id: movie.id || movie.movieId || `movie_${Date.now()}_${index}`,
+        title: movie.title || movie.name || '未知影片',
+        rating: rating || '暂无',
+        cover_url: coverUrl,
+        coverUrl,
         genres,
-        year: movie.year || '',
-        director: movie.director || '',
-        actors: movie.actors || '',
-        ...movie
+        selectedElements: genres,
+        genresText: genres.length ? genres.join(' / ') : '暂无类型信息',
+        recommendMatchScore: this.formatMatchScore(movie.recommend_match_score, movie.final_score)
       };
     }).filter(Boolean);
+  },
+
+  formatMatchScore(recommendMatchScore, finalScore) {
+    let score = Number(recommendMatchScore);
+    if (!Number.isFinite(score)) {
+      score = Math.round(Number(finalScore || 0) * 100);
+    }
+
+    if (!Number.isFinite(score)) {
+      return '暂无';
+    }
+
+    return `${Math.max(0, Math.min(100, Math.round(score)))}%`;
+  },
+
+  formatRecommendReasons(recommendReasons, countWeights) {
+    if (Array.isArray(recommendReasons) && recommendReasons.length) {
+      return recommendReasons
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+        .slice(0, 5);
+    }
+
+    const fallbackReasons = [];
+    const weights = countWeights || {};
+    const genres = weights.genres ? Object.keys(weights.genres).slice(0, 3) : [];
+    const directors = weights.directors ? Object.keys(weights.directors).slice(0, 2) : [];
+    const actors = weights.actors ? Object.keys(weights.actors).slice(0, 2) : [];
+
+    if (genres.length) {
+      fallbackReasons.push(`偏好 ${genres.join(' / ')} 类型内容`);
+    }
+    if (directors.length) {
+      fallbackReasons.push(`近期更关注 ${directors.join(' / ')} 的作品`);
+    }
+    if (actors.length) {
+      fallbackReasons.push(`喜欢 ${actors.join(' / ')} 参演的影片`);
+    }
+
+    return fallbackReasons.slice(0, 5);
   },
 
   formatToGrid(list) {
@@ -157,29 +217,41 @@ Page({
   refreshRecommendations() {
     this.stopRefreshPolling();
     this.setData({
-      syncStatus: '正在刷新推荐，请稍候...',
+      syncStatus: '正在刷新推荐...',
       loading: true,
       isRefreshing: true,
       error: ''
     });
 
     wx.request({
-      url: 'http://localhost:5000/refresh-recommendations',
+      url: `${this.getBackendUrl()}/refresh-recommendations`,
       method: 'POST',
       data: { type: 'movie' },
       timeout: 10000,
       success: (res) => {
-        if (res.data.code === 0 && res.data.job_id) {
+        if (res.data && res.data.code === 0 && res.data.status === 'done') {
+          this.setData({
+            refreshJobId: '',
+            isRefreshing: false,
+            syncStatus: res.data.rotated ? '已换一批推荐' : (res.data.reused ? '推荐已是最新' : '推荐已更新')
+          });
+          this.fetchRecommendations();
+          setTimeout(() => this.setData({ syncStatus: '' }), 3000);
+          return;
+        }
+
+        if (res.data && res.data.code === 0 && res.data.job_id) {
           this.setData({ refreshJobId: res.data.job_id });
           this.pollRefreshStatus(res.data.job_id);
-        } else {
-          this.setData({
-            syncStatus: '刷新失败',
-            loading: false,
-            isRefreshing: false,
-            error: res.data.error || '刷新失败'
-          });
+          return;
         }
+
+        this.setData({
+          syncStatus: '刷新失败',
+          loading: false,
+          isRefreshing: false,
+          error: (res.data && res.data.error) || '刷新失败'
+        });
       },
       fail: () => {
         this.setData({
@@ -196,11 +268,11 @@ Page({
     this.stopRefreshPolling();
     this.refreshPollingTimer = setInterval(() => {
       wx.request({
-        url: 'http://localhost:5000/refresh-status',
+        url: `${this.getBackendUrl()}/refresh-status`,
         data: { job_id: jobId },
         timeout: 10000,
         success: (res) => {
-          if (res.data.code !== 0) {
+          if (!res.data || res.data.code !== 0) {
             return;
           }
 
@@ -235,7 +307,7 @@ Page({
           });
         }
       });
-    }, 2000);
+    }, 1500);
   },
 
   stopRefreshPolling() {
@@ -247,22 +319,18 @@ Page({
 
   onImageError(e) {
     const movieId = e.currentTarget.dataset.id;
-    const newGridList = this.data.gridList.map((row) =>
-      row.map((movie) =>
-        movie.id === movieId ? { ...movie, cover_url: '/images/default_movie.png', coverUrl: '/images/default_movie.png' } : movie
-      )
-    );
-    this.setData({ gridList: newGridList });
 
-    const newSearchResults = this.data.searchResults.map((movie) =>
-      movie.id === movieId ? { ...movie, cover_url: '/images/default_movie.png', coverUrl: '/images/default_movie.png' } : movie
-    );
-    this.setData({ searchResults: newSearchResults });
+    const updatePoster = (list) => list.map((item) => (
+      item.id === movieId
+        ? { ...item, cover_url: '/images/default_movie.png', coverUrl: '/images/default_movie.png' }
+        : item
+    ));
 
-    const newAlreadyList = this.data.alreadyList.map((movie) =>
-      movie.id === movieId ? { ...movie, cover_url: '/images/default_movie.png', coverUrl: '/images/default_movie.png' } : movie
-    );
-    this.setData({ alreadyList: newAlreadyList });
+    this.setData({
+      gridList: this.data.gridList.map((row) => updatePoster(row)),
+      searchResults: updatePoster(this.data.searchResults),
+      alreadyList: updatePoster(this.data.alreadyList)
+    });
   },
 
   goToDetail(e) {
@@ -272,35 +340,42 @@ Page({
 
   getMovieById(id) {
     for (const row of this.data.gridList) {
-      const movie = row.find((m) => m.id === id);
-      if (movie) return movie;
+      const movie = row.find((item) => item.id === id);
+      if (movie) {
+        return movie;
+      }
     }
-    const movie = this.data.searchResults.find((m) => m.id === id);
-    if (movie) return movie;
-    return this.data.alreadyList.find((m) => m.id === id) || null;
+
+    return this.data.searchResults.find((item) => item.id === id)
+      || this.data.alreadyList.find((item) => item.id === id)
+      || null;
   },
 
   handleNegativeFeedback(e) {
     const movieId = e.currentTarget.dataset.id;
     const movie = this.getMovieById(movieId);
-    if (!movie) return;
+    if (!movie) {
+      return;
+    }
 
     wx.showModal({
       title: '不感兴趣',
-      content: `确定对《${movie.title}》不感兴趣吗？将不再为你推荐类似影片`,
+      content: `确定不喜欢《${movie.title}》吗？后续会减少同类推荐。`,
       success: (res) => {
-        if (res.confirm) {
-          this.submitNegativeFeedback(movieId);
-          this.removeMovieFromUI(movieId);
-          wx.showToast({ title: '已记录你的偏好', icon: 'success' });
+        if (!res.confirm) {
+          return;
         }
+
+        this.submitNegativeFeedback(movieId);
+        this.removeMovieFromUI(movieId);
+        wx.showToast({ title: '已记录你的偏好', icon: 'success' });
       }
     });
   },
 
   submitNegativeFeedback(movieId) {
     wx.request({
-      url: 'http://localhost:5000/negative-feedback',
+      url: `${this.getBackendUrl()}/negative-feedback`,
       method: 'POST',
       data: {
         item_id: movieId,
@@ -311,12 +386,15 @@ Page({
   },
 
   removeMovieFromUI(movieId) {
-    const newGridList = this.data.gridList.map((row) => row.filter((movie) => movie.id !== movieId)).filter((row) => row.length > 0);
-    this.setData({ gridList: newGridList });
-    this.setData({ searchResults: this.data.searchResults.filter((movie) => movie.id !== movieId) });
-    const newAlreadyList = this.data.alreadyList.filter((movie) => movie.id !== movieId);
-    this.setData({ alreadyList: newAlreadyList });
-    wx.setStorageSync('alreadyList', newAlreadyList);
+    const gridList = this.data.gridList
+      .map((row) => row.filter((movie) => movie.id !== movieId))
+      .filter((row) => row.length > 0);
+
+    const searchResults = this.data.searchResults.filter((movie) => movie.id !== movieId);
+    const alreadyList = this.data.alreadyList.filter((movie) => movie.id !== movieId);
+
+    this.setData({ gridList, searchResults, alreadyList });
+    wx.setStorageSync('alreadyList', alreadyList);
   },
 
   addToWatchlist(e) {
@@ -327,9 +405,9 @@ Page({
       return;
     }
 
-    let alreadyList = wx.getStorageSync('alreadyList') || [];
+    const alreadyList = wx.getStorageSync('alreadyList') || [];
     if (alreadyList.some((item) => item.id === movieId)) {
-      wx.showToast({ title: '已在待看清单中', icon: 'none' });
+      wx.showToast({ title: '已在想看清单中', icon: 'none' });
       return;
     }
 
@@ -341,58 +419,104 @@ Page({
       coverUrl: movie.cover_url || movie.coverUrl,
       cover_url: movie.cover_url || movie.coverUrl,
       year: movie.year || '',
+      genres: movie.genres || movie.selectedElements || [],
       selectedElements: movie.genres || movie.selectedElements || [],
       director: movie.director || '',
+      type: 'movie',
+      content_type: 'movie',
       addedTime: Date.now()
     };
 
     alreadyList.push(newMovie);
     wx.setStorageSync('alreadyList', alreadyList);
+
     const totalList = wx.getStorageSync('totalMovieList') || [];
     totalList.push(newMovie);
     wx.setStorageSync('totalMovieList', totalList);
+
     this.loadAlreadyData();
-    wx.showToast({ title: '已添加到待看清单', icon: 'success' });
+    wx.showToast({ title: '已加入想看清单', icon: 'success' });
+    this.syncPreferencesAfterWatchlistUpdate('movie');
+  },
+
+  syncPreferencesAfterWatchlistUpdate(contentType) {
+    const app = getApp();
+    if (!app || typeof app.syncAndRefresh !== 'function') {
+      return;
+    }
+
+    this.setData({
+      syncStatus: '正在同步偏好并刷新推荐...',
+      isRefreshing: true
+    });
+
+    app.syncAndRefresh(contentType, {
+      onSuccess: (result) => {
+        const refreshData = (result && result.refreshResult && result.refreshResult.data) || {};
+        this.setData({
+          isRefreshing: false,
+          syncStatus: refreshData.rotated ? '已换一批推荐' : (refreshData.reused ? '推荐已是最新' : '推荐已更新')
+        });
+        this.fetchRecommendations();
+        setTimeout(() => this.setData({ syncStatus: '' }), 3000);
+      },
+      onFail: () => {
+        this.setData({
+          isRefreshing: false,
+          syncStatus: '本地已保存，推荐稍后更新'
+        });
+        setTimeout(() => this.setData({ syncStatus: '' }), 3000);
+      }
+    });
   },
 
   deleteAlready(e) {
     const id = e.currentTarget.dataset.id;
     wx.showModal({
       title: '确认删除',
-      content: '确定要从待看清单中删除吗？',
+      content: '确定要从想看清单中删除吗？',
       success: (res) => {
-        if (res.confirm) {
-          let alreadyList = wx.getStorageSync('alreadyList') || [];
-          const newAlreadyList = alreadyList.filter((item) => item.id !== id);
-          wx.setStorageSync('alreadyList', newAlreadyList);
-          const totalList = wx.getStorageSync('totalMovieList') || [];
-          wx.setStorageSync('totalMovieList', totalList.filter((item) => item.id !== id));
-          this.loadAlreadyData();
-          wx.showToast({ title: '已从待看清单移除', icon: 'none' });
+        if (!res.confirm) {
+          return;
         }
+
+        const alreadyList = (wx.getStorageSync('alreadyList') || []).filter((item) => item.id !== id);
+        wx.setStorageSync('alreadyList', alreadyList);
+
+        const totalList = (wx.getStorageSync('totalMovieList') || []).filter((item) => item.id !== id);
+        wx.setStorageSync('totalMovieList', totalList);
+
+        this.loadAlreadyData();
+        wx.showToast({ title: '已从想看清单移除', icon: 'none' });
       }
     });
   },
 
   searchMovies(e) {
-    const query = e.detail?.value || this.data.searchQuery;
-    if (!query.trim()) {
+    const query = (e.detail && e.detail.value) || this.data.searchQuery;
+    if (!String(query || '').trim()) {
       this.setData({ searchResults: [], showSearch: false });
       return;
     }
 
     this.setData({ searchQuery: query, loading: true });
     wx.request({
-      url: 'http://localhost:5000/search',
+      url: `${this.getBackendUrl()}/search`,
       data: { q: query, type: 'movie' },
       success: (res) => {
-        if (res.data.code === 0) {
+        if (res.data && res.data.code === 0) {
           this.setData({
             searchResults: this.formatMovieData(res.data.results),
             showSearch: true,
             loading: false
           });
+          return;
         }
+
+        this.setData({
+          loading: false,
+          error: (res.data && res.data.error) || '搜索失败'
+        });
       },
       fail: () => {
         this.setData({ loading: false, error: '搜索失败' });

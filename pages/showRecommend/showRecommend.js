@@ -4,6 +4,7 @@ Page({
     loading: false,
     error: '',
     countWeights: {},
+    recommendReasons: [],
     syncStatus: '',
     searchQuery: '',
     searchResults: [],
@@ -18,7 +19,11 @@ Page({
     const eventChannel = this.getOpenerEventChannel();
     if (eventChannel) {
       eventChannel.on('sendRecommendData', (data) => {
-        this.processRecommendData(data.recommendList || data.data, data.countWeights);
+        this.processRecommendData(
+          data.recommendList || data.data,
+          data.countWeights || data.count_weights,
+          data.recommendReasons || data.recommend_reasons_summary
+        );
       });
     } else {
       this.fetchRecommendations();
@@ -28,27 +33,65 @@ Page({
 
   onShow() {
     if (this.data.activeTab === 'recommend' && !this.data.isRefreshing) {
-      this.fetchRecommendations();
+      if (!this.refreshTimer) {
+        this.refreshTimer = setTimeout(() => {
+          this.fetchRecommendations();
+          this.refreshTimer = null;
+        }, 300);
+      }
     }
     this.loadAlreadyData();
   },
 
   onUnload() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
     this.stopRefreshPolling();
+  },
+
+  getBackendUrl() {
+    const app = getApp();
+    return (app && typeof app.getBackendUrl === 'function')
+      ? app.getBackendUrl()
+      : 'http://localhost:5000';
+  },
+
+  normalizeGenres(item) {
+    const rawGenres = item?.genres ?? item?.selectedElements ?? [];
+
+    if (Array.isArray(rawGenres)) {
+      return rawGenres.map((genre) => String(genre).trim()).filter(Boolean);
+    }
+
+    if (typeof rawGenres === 'string') {
+      return rawGenres
+        .split(/[,/|、，]/)
+        .map((genre) => genre.trim())
+        .filter(Boolean);
+    }
+
+    return [];
   },
 
   loadAlreadyData() {
     let alreadyData = wx.getStorageSync('alreadyList') || [];
     alreadyData = alreadyData.map((item) => {
-      let elements = item.selectedElements || [];
-      if (typeof elements === 'string') {
-        elements = elements.split(',');
+      let genres = item.genres || item.selectedElements || [];
+      if (typeof genres === 'string') {
+        genres = genres.split(',').map((genre) => genre.trim()).filter(Boolean);
+      } else if (!Array.isArray(genres)) {
+        genres = [];
       }
+
       return {
         ...item,
-        selectedElements: elements,
+        genres,
+        selectedElements: genres,
         title: item.title || item.name,
-        cover_url: item.cover_url || item.coverUrl
+        cover_url: item.cover_url || item.coverUrl || '/images/default_series.png',
+        coverUrl: item.cover_url || item.coverUrl || '/images/default_series.png'
       };
     });
     this.setData({ alreadyList: alreadyData });
@@ -62,30 +105,36 @@ Page({
     });
   },
 
-  processRecommendData(recommendList, countWeights) {
+  processRecommendData(recommendList, countWeights, recommendReasons) {
     const formattedList = this.formatSeriesData(recommendList);
     const gridList = this.formatToGrid(formattedList);
     this.setData({
       gridList,
       countWeights: countWeights || {},
+      recommendReasons: this.formatRecommendReasons(recommendReasons, countWeights),
       loading: false,
-      error: formattedList.length === 0 ? '暂无推荐数据，请添加剧集偏好' : ''
+      error: formattedList.length === 0 ? '暂无推荐数据，请先添加一些追剧偏好' : ''
     });
   },
 
   fetchRecommendations() {
     this.setData({ loading: true, error: '' });
+
     wx.request({
-      url: 'http://localhost:5000/get_recommend',
+      url: `${this.getBackendUrl()}/get_recommend`,
       data: { type: 'series' },
       timeout: 10000,
       success: (res) => {
-        if (res.data.code === 0) {
-          this.processRecommendData(res.data.data, res.data.count_weights);
+        if (res.data && res.data.code === 0) {
+          this.processRecommendData(
+            res.data.data,
+            res.data.count_weights,
+            res.data.recommend_reasons_summary
+          );
         } else {
           this.setData({
             loading: false,
-            error: res.data.error || '获取推荐失败'
+            error: (res.data && res.data.error) || '获取推荐失败'
           });
         }
       },
@@ -101,7 +150,11 @@ Page({
 
   formatSeriesData(list) {
     if (!Array.isArray(list)) return [];
-    return list.map((series) => {
+    const batchId = Date.now();
+
+    return list.map((series, index) => {
+      if (!series) return null;
+
       let genres = series.genres || [];
       if (typeof genres === 'string') {
         genres = genres.split(',').map((genre) => genre.trim()).filter(Boolean);
@@ -114,25 +167,78 @@ Page({
         rating = rating.toFixed(1);
       }
 
+      const matchScore = this.formatMatchScore(series.recommend_match_score, series.final_score);
+      const rawCoverUrl = series.cover_url || series.coverUrl || '';
+      const coverUrl = rawCoverUrl
+        ? `${this.getBackendUrl()}/proxy-image?url=${encodeURIComponent(rawCoverUrl)}`
+        : '/images/default_series.png';
+      const uniqueId = series.id || series.seriesId || `series_${batchId}_${index}_${Math.random().toString(36).slice(2, 7)}`;
+
       return {
-        id: series.id || '',
+        id: uniqueId,
         title: series.title || series.name || '未知剧集',
-        name: series.title || series.name || '未知剧集',
         rating,
-        cover_url: series.cover_url
-          ? `http://localhost:5000/proxy-image?url=${encodeURIComponent(series.cover_url)}`
-          : '/images/default_series.png',
-        coverUrl: series.cover_url
-          ? `http://localhost:5000/proxy-image?url=${encodeURIComponent(series.cover_url)}`
-          : '/images/default_series.png',
-        similarity: series.similarity ? series.similarity.toFixed(1) : '0',
+        cover_url: coverUrl,
+        coverUrl,
         genres,
-        selectedElements: genres,
+        genresText: genres.length ? genres.join(' / ') : '暂无类型信息',
+        recommendMatchScore: matchScore,
         year: series.year || '',
         director: series.director || '',
-        type: 'series'
+        actors: series.actors || '',
+        type: 'series',
+        content_type: 'series',
+        ...series
       };
-    });
+    }).filter(Boolean);
+  },
+
+  formatMatchScore(recommendMatchScore, finalScore) {
+    let score = recommendMatchScore;
+    if (typeof score !== 'number') {
+      score = Number(score);
+    }
+
+    if (!Number.isFinite(score)) {
+      let fallback = finalScore;
+      if (typeof fallback !== 'number') {
+        fallback = Number(fallback);
+      }
+      if (Number.isFinite(fallback)) {
+        score = Math.round(fallback * 100);
+      }
+    }
+
+    if (!Number.isFinite(score)) {
+      return '暂无';
+    }
+
+    const normalizedScore = Math.max(0, Math.min(100, Math.round(score)));
+    return `${normalizedScore}%`;
+  },
+
+  formatRecommendReasons(recommendReasons, countWeights) {
+    if (Array.isArray(recommendReasons) && recommendReasons.length > 0) {
+      return recommendReasons.filter((item) => typeof item === 'string' && item.trim()).slice(0, 5);
+    }
+
+    const fallbackReasons = [];
+    const weights = countWeights || {};
+    const genres = weights.genres ? Object.keys(weights.genres).slice(0, 3) : [];
+    const directors = weights.directors ? Object.keys(weights.directors).slice(0, 2) : [];
+    const actors = weights.actors ? Object.keys(weights.actors).slice(0, 2) : [];
+
+    if (genres.length) {
+      fallbackReasons.push(`偏好${genres.join('、')}题材`);
+    }
+    if (directors.length) {
+      fallbackReasons.push(`更常选择${directors.join('、')}相关作品`);
+    }
+    if (actors.length) {
+      fallbackReasons.push(`关注演员${actors.join('、')}参演内容`);
+    }
+
+    return fallbackReasons.slice(0, 5);
   },
 
   formatToGrid(list) {
@@ -153,12 +259,20 @@ Page({
     });
 
     wx.request({
-      url: 'http://localhost:5000/refresh-recommendations',
+      url: `${this.getBackendUrl()}/refresh-recommendations`,
       method: 'POST',
       data: { type: 'series' },
       timeout: 10000,
       success: (res) => {
-        if (res.data.code === 0 && res.data.job_id) {
+        if (res.data && res.data.code === 0 && res.data.status === 'done') {
+          this.setData({
+            refreshJobId: '',
+            isRefreshing: false,
+            syncStatus: res.data.rotated ? '已换一批推荐' : (res.data.reused ? '推荐已是最新' : '推荐已更新')
+          });
+          this.fetchRecommendations();
+          setTimeout(() => this.setData({ syncStatus: '' }), 3000);
+        } else if (res.data && res.data.code === 0 && res.data.job_id) {
           this.setData({ refreshJobId: res.data.job_id });
           this.pollRefreshStatus(res.data.job_id);
         } else {
@@ -166,7 +280,7 @@ Page({
             syncStatus: '刷新失败',
             loading: false,
             isRefreshing: false,
-            error: res.data.error || '刷新失败'
+            error: (res.data && res.data.error) || '刷新失败'
           });
         }
       },
@@ -185,11 +299,11 @@ Page({
     this.stopRefreshPolling();
     this.refreshPollingTimer = setInterval(() => {
       wx.request({
-        url: 'http://localhost:5000/refresh-status',
+        url: `${this.getBackendUrl()}/refresh-status`,
         data: { job_id: jobId },
         timeout: 10000,
         success: (res) => {
-          if (res.data.code !== 0) {
+          if (!res.data || res.data.code !== 0) {
             return;
           }
 
@@ -242,6 +356,16 @@ Page({
       )
     );
     this.setData({ gridList: newGridList });
+
+    const newSearchResults = this.data.searchResults.map((series) =>
+      series.id === seriesId ? { ...series, cover_url: '/images/default_series.png', coverUrl: '/images/default_series.png' } : series
+    );
+    this.setData({ searchResults: newSearchResults });
+
+    const newAlreadyList = this.data.alreadyList.map((series) =>
+      series.id === seriesId ? { ...series, cover_url: '/images/default_series.png', coverUrl: '/images/default_series.png' } : series
+    );
+    this.setData({ alreadyList: newAlreadyList });
   },
 
   goToDetail(e) {
@@ -251,12 +375,12 @@ Page({
 
   getSeriesById(id) {
     for (const row of this.data.gridList) {
-      const series = row.find((m) => m.id === id);
+      const series = row.find((item) => item.id === id);
       if (series) return series;
     }
-    const searchHit = this.data.searchResults.find((m) => m.id === id);
-    if (searchHit) return searchHit;
-    return this.data.alreadyList.find((m) => m.id === id) || null;
+    const searchSeries = this.data.searchResults.find((item) => item.id === id);
+    if (searchSeries) return searchSeries;
+    return this.data.alreadyList.find((item) => item.id === id) || null;
   },
 
   handleNegativeFeedback(e) {
@@ -279,7 +403,7 @@ Page({
 
   submitNegativeFeedback(seriesId) {
     wx.request({
-      url: 'http://localhost:5000/negative-feedback',
+      url: `${this.getBackendUrl()}/negative-feedback`,
       method: 'POST',
       data: {
         item_id: seriesId,
@@ -290,7 +414,9 @@ Page({
   },
 
   removeSeriesFromUI(seriesId) {
-    const newGridList = this.data.gridList.map((row) => row.filter((series) => series.id !== seriesId)).filter((row) => row.length > 0);
+    const newGridList = this.data.gridList
+      .map((row) => row.filter((series) => series.id !== seriesId))
+      .filter((row) => row.length > 0);
     this.setData({ gridList: newGridList });
     this.setData({ searchResults: this.data.searchResults.filter((series) => series.id !== seriesId) });
     const newAlreadyList = this.data.alreadyList.filter((series) => series.id !== seriesId);
@@ -308,7 +434,7 @@ Page({
 
     let alreadyList = wx.getStorageSync('alreadyList') || [];
     if (alreadyList.some((item) => item.id === seriesId)) {
-      wx.showToast({ title: '已在待看清单中', icon: 'none' });
+      wx.showToast({ title: '已在想看清单中', icon: 'none' });
       return;
     }
 
@@ -320,9 +446,11 @@ Page({
       coverUrl: series.cover_url || series.coverUrl,
       cover_url: series.cover_url || series.coverUrl,
       year: series.year || '',
+      genres: series.genres || series.selectedElements || [],
       selectedElements: series.genres || series.selectedElements || [],
       director: series.director || '',
       type: 'series',
+      content_type: 'series',
       addedTime: Date.now()
     };
 
@@ -332,14 +460,46 @@ Page({
     totalList.push(newSeries);
     wx.setStorageSync('totalSeriesList', totalList);
     this.loadAlreadyData();
-    wx.showToast({ title: '已添加到待看清单', icon: 'success' });
+    wx.showToast({ title: '已添加到想看清单', icon: 'success' });
+    this.syncPreferencesAfterWatchlistUpdate('series');
+  },
+
+  syncPreferencesAfterWatchlistUpdate(contentType) {
+    const app = getApp();
+    if (!app || typeof app.syncAndRefresh !== 'function') {
+      return;
+    }
+
+    this.setData({
+      syncStatus: '正在同步偏好并刷新推荐...',
+      isRefreshing: true
+    });
+
+    app.syncAndRefresh(contentType, {
+      onSuccess: (result) => {
+        const refreshData = (result && result.refreshResult && result.refreshResult.data) || {};
+        this.setData({
+          isRefreshing: false,
+          syncStatus: refreshData.rotated ? '已换一批推荐' : (refreshData.reused ? '推荐已是最新' : '推荐已更新')
+        });
+        this.fetchRecommendations();
+        setTimeout(() => this.setData({ syncStatus: '' }), 3000);
+      },
+      onFail: () => {
+        this.setData({
+          isRefreshing: false,
+          syncStatus: '本地已保存，推荐稍后更新'
+        });
+        setTimeout(() => this.setData({ syncStatus: '' }), 3000);
+      }
+    });
   },
 
   deleteAlready(e) {
     const id = e.currentTarget.dataset.id;
     wx.showModal({
       title: '确认删除',
-      content: '确定要从待看清单中删除吗？',
+      content: '确定要从想看清单中删除吗？',
       success: (res) => {
         if (res.confirm) {
           let alreadyList = wx.getStorageSync('alreadyList') || [];
@@ -348,7 +508,7 @@ Page({
           const totalList = wx.getStorageSync('totalSeriesList') || [];
           wx.setStorageSync('totalSeriesList', totalList.filter((item) => item.id !== id));
           this.loadAlreadyData();
-          wx.showToast({ title: '已从待看清单移除', icon: 'none' });
+          wx.showToast({ title: '已从想看清单移除', icon: 'none' });
         }
       }
     });
@@ -363,7 +523,7 @@ Page({
 
     this.setData({ searchQuery: query, loading: true });
     wx.request({
-      url: 'http://localhost:5000/search',
+      url: `${this.getBackendUrl()}/search`,
       data: { q: query, type: 'series' },
       success: (res) => {
         if (res.data.code === 0) {
@@ -371,6 +531,11 @@ Page({
             searchResults: this.formatSeriesData(res.data.results),
             showSearch: true,
             loading: false
+          });
+        } else {
+          this.setData({
+            loading: false,
+            error: res.data.error || '搜索失败'
           });
         }
       },
@@ -389,7 +554,7 @@ Page({
   },
 
   goToAddSeries() {
-    wx.navigateTo({ url: '/pages/addSeries/addSeries' });
+    wx.navigateTo({ url: '/pages/add/add' });
   },
 
   goToAlreadyPage() {
