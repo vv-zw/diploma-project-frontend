@@ -1,5 +1,6 @@
 {
   "pages": [
+    
     "pages/index/index",
     "pages/all/all",
     "pages/movie/movie",
@@ -12,7 +13,10 @@
     "pages/setting/setting",
     "pages/movieRecommend/movieRecommend",
     "pages/showRecommend/showRecommend",
-    "pages/webview/webview"  
+    "pages/webview/webview",
+    "pages/adminLogin/adminLogin",
+    "pages/adminDashboard/adminDashboard",
+    "pages/adminContent/adminContent"
   ],
   "window": {
     "navigationBarTextStyle": "black",

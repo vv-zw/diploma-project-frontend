@@ -411,6 +411,26 @@ Page({
       return;
     }
 
+    const app = getApp();
+    if (!app || typeof app.addWatchlistItem !== 'function') {
+      wx.showToast({ title: '当前版本不支持待看同步', icon: 'none' });
+      return;
+    }
+
+    app.addWatchlistItem({
+      ...movie,
+      type: 'movie',
+      content_type: 'movie'
+    }).then(() => {
+      this.loadAlreadyData();
+      wx.showToast({ title: '已加入待看清单', icon: 'success' });
+      this.syncPreferencesAfterWatchlistUpdate('movie');
+    }).catch((error) => {
+      console.error('add_watchlist_failed', error);
+      wx.showToast({ title: '加入待看失败', icon: 'none' });
+    });
+    return;
+
     const newMovie = {
       id: movie.id,
       name: movie.title || movie.name,
@@ -479,6 +499,21 @@ Page({
         if (!res.confirm) {
           return;
         }
+
+        const app = getApp();
+        if (!app || typeof app.removeWatchlistItem !== 'function') {
+          wx.showToast({ title: '当前版本不支持待看同步', icon: 'none' });
+          return;
+        }
+
+        app.removeWatchlistItem(id, 'movie').then(() => {
+          this.loadAlreadyData();
+          wx.showToast({ title: '已从待看清单移除', icon: 'none' });
+        }).catch((error) => {
+          console.error('remove_watchlist_failed', error);
+          wx.showToast({ title: '移除失败，请重试', icon: 'none' });
+        });
+        return;
 
         const alreadyList = (wx.getStorageSync('alreadyList') || []).filter((item) => item.id !== id);
         wx.setStorageSync('alreadyList', alreadyList);

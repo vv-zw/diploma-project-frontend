@@ -2,8 +2,9 @@ Page({
   data: {
     name: '',
     score: 5,
+    scoreIndex: 4,
     scores: [1, 2, 3, 4, 5],
-    types: ['电影', '剧集', '综艺', '待看'],
+    types: ['电影', '剧集', '综艺', '待看电影', '待看剧集'],
     typeIndex: 0,
     comment: '',
     elements: ['古装', '爱情', '战争', '谍战', '悬疑', '恐怖', '家庭', '搞笑', '警匪', '动画', '剧情', '纪录片', '科幻', '国产剧', '美剧', '韩剧', '热门'],
@@ -20,7 +21,11 @@ Page({
   },
 
   changeScore(e) {
-    this.setData({ score: this.data.scores[Number(e.detail.value)] });
+    const scoreIndex = Number(e.detail.value);
+    this.setData({
+      scoreIndex,
+      score: this.data.scores[scoreIndex]
+    });
   },
 
   inputComment(e) {
@@ -33,18 +38,25 @@ Page({
 
   getCategoryKey(type) {
     return {
-      '电影': 'movieList',
-      '剧集': 'showList',
-      '综艺': 'reactionList',
-      '待看': 'alreadyList'
+      电影: 'movieList',
+      剧集: 'showList',
+      综艺: 'reactionList',
+      待看电影: 'alreadyList',
+      待看剧集: 'alreadyList'
     }[type] || '';
   },
 
   getContentType(type) {
     return {
-      '电影': 'movie',
-      '剧集': 'series'
+      电影: 'movie',
+      剧集: 'series',
+      待看电影: 'movie',
+      待看剧集: 'series'
     }[type] || '';
+  },
+
+  isWatchlistType(type) {
+    return type === '待看电影' || type === '待看剧集';
   },
 
   persistToCategoryList(key, item) {
@@ -61,22 +73,12 @@ Page({
     }
   },
 
-  save() {
+  buildNewItem() {
     const { name, score, types, typeIndex, comment, selectedElements } = this.data;
     const selectedType = types[typeIndex];
-
-    if (!name) {
-      wx.showToast({ title: '请输入名称', icon: 'none' });
-      return;
-    }
-
-    if (!selectedElements.length) {
-      wx.showToast({ title: '请至少选择一个类型', icon: 'none' });
-      return;
-    }
-
     const contentType = this.getContentType(selectedType);
-    const newItem = {
+
+    return {
       id: Date.now().toString(),
       name,
       title: name,
@@ -89,8 +91,31 @@ Page({
       selectedElements: [...selectedElements],
       createTime: new Date().toISOString()
     };
+  },
+
+  save() {
+    const { name, types, typeIndex, selectedElements } = this.data;
+    const selectedType = types[typeIndex];
+
+    if (!name) {
+      wx.showToast({ title: '请输入名称', icon: 'none' });
+      return;
+    }
+
+    if (!selectedElements.length) {
+      wx.showToast({ title: '请至少选择一个分类', icon: 'none' });
+      return;
+    }
+
+    const newItem = this.buildNewItem();
+    const contentType = this.getContentType(selectedType);
 
     try {
+      if (this.isWatchlistType(selectedType)) {
+        this.saveWatchlistItem(newItem, contentType);
+        return;
+      }
+
       const totalList = wx.getStorageSync('totalMovieList') || [];
       totalList.push(newItem);
       wx.setStorageSync('totalMovieList', totalList);
@@ -101,9 +126,35 @@ Page({
       this.resetForm();
       this.syncAfterSave(contentType);
     } catch (error) {
-      console.error('保存失败:', error);
+      console.error('save_failed', error);
       wx.showToast({ title: '保存失败，请重试', icon: 'none' });
     }
+  },
+
+  saveWatchlistItem(item, contentType) {
+    const app = getApp();
+    if (!app || typeof app.addWatchlistItem !== 'function') {
+      wx.showToast({ title: '当前版本不支持待看同步', icon: 'none' });
+      return;
+    }
+
+    wx.showLoading({ title: '正在保存' });
+
+    app.addWatchlistItem({
+      ...item,
+      type: contentType,
+      content_type: contentType
+    }).then(() => {
+      this.resetForm();
+      return app.syncAndRefresh(contentType, { silent: true }).catch(() => null);
+    }).then(() => {
+      wx.hideLoading();
+      wx.showToast({ title: '已加入待看清单', icon: 'success' });
+    }).catch((error) => {
+      wx.hideLoading();
+      console.error('save_watchlist_failed', error);
+      wx.showToast({ title: '加入待看失败', icon: 'none' });
+    });
   },
 
   syncAfterSave(contentType) {
@@ -113,7 +164,7 @@ Page({
     const onSuccess = () => {
       wx.hideLoading();
       wx.showToast({
-        title: contentType ? '已保存并更新推荐' : '已保存',
+        title: contentType ? '已保存并刷新推荐' : '已保存',
         icon: 'success'
       });
     };
@@ -149,6 +200,7 @@ Page({
     this.setData({
       name: '',
       score: 5,
+      scoreIndex: 4,
       comment: '',
       selectedElements: [],
       showElements: false

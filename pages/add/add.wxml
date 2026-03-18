@@ -1,42 +1,67 @@
-<view class="container">
-  <view class="form-title">添加影视记录</view>
-  
-  <view class="input-item">
-    <text class="label">名称：</text>
-    <input class="input-field" placeholder="请输入影视名称" bindinput="inputName" value="{{name}}" />
+<view class="page-container">
+  <view class="hero-card">
+    <view class="hero-glow hero-glow-one"></view>
+    <view class="hero-glow hero-glow-two"></view>
+    <view class="hero-top">
+      <view class="hero-tag">ADD ENTRY</view>
+    </view>
+    <view class="page-title">添加影视记录</view>
+    <view class="page-subtitle">填写名称、类型、评分和分类标签，快速保存到你的片单中。</view>
   </view>
 
-  <view class="input-item">
-    <text class="label">类型：</text>
-    <picker class="picker-field" value="{{typeIndex}}" range="{{types}}" bindchange="changeType">
-      <view class="picker-display">{{types[typeIndex]}}</view>
-    </picker>
+  <view class="form-card">
+    <view class="section-title">基础信息</view>
+
+    <view class="field-block">
+      <view class="field-label">名称</view>
+      <input
+        class="input-field"
+        placeholder="请输入影视名称"
+        bindinput="inputName"
+        value="{{name}}"
+      />
+    </view>
+
+    <view class="field-block">
+      <view class="field-label">类型</view>
+      <picker class="picker-field" value="{{typeIndex}}" range="{{types}}" bindchange="changeType">
+        <view class="picker-display">{{types[typeIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="field-block">
+      <view class="field-label">评分</view>
+      <picker class="picker-field" value="{{scoreIndex}}" range="{{scores}}" bindchange="changeScore">
+        <view class="picker-display">{{score}} 星</view>
+      </picker>
+    </view>
   </view>
 
-  <view class="input-item">
-    <text class="label">评分：</text>
-    <!-- 修复：绑定scoreIndex变量 -->
-    <picker class="picker-field" value="{{scoreIndex}}" range="{{scores}}" bindchange="changeScore">
-      <view class="picker-display">{{score}}星</view>
-    </picker>
-  </view>
+  <view class="form-card" wx:if="{{showElements}}">
+    <view class="section-title">内容分类</view>
+    <view class="section-subtitle">可多选，用于后续推荐和内容整理。</view>
 
-  <view class="input-item elements-section" wx:if="{{showElements}}">
-    <text class="label">分类：</text>
-    <checkbox-group bindchange="checkboxChange" class="checkbox-group">
-      <label class="checkbox-item" wx:for="{{elements}}" wx:key="*this">
-        <checkbox value="{{item}}" />
+    <checkbox-group bindchange="checkboxChange" class="tag-grid">
+      <label class="tag-item {{selectedElements.indexOf(item) > -1 ? 'tag-item-active' : ''}}" wx:for="{{elements}}" wx:key="*this">
+        <checkbox value="{{item}}" checked="{{selectedElements.indexOf(item) > -1}}" />
         <text>{{item}}</text>
       </label>
     </checkbox-group>
   </view>
 
-  <view class="input-item">
-    <text class="label">短评：</text>
-    <textarea class="textarea-field" placeholder="说点什么..." bindinput="inputComment" value="{{comment}}" auto-height />
+  <view class="form-card">
+    <view class="section-title">短评</view>
+    <view class="section-subtitle">写下你的印象、推荐理由或观感。</view>
+    <textarea
+      class="textarea-field"
+      placeholder="说点什么..."
+      bindinput="inputComment"
+      value="{{comment}}"
+      auto-height
+    />
   </view>
 
-  <view class="button-group">
+  <view class="action-bar">
     <button class="back-btn" bindtap="goBack">返回</button>
     <button class="save-btn" bindtap="save">保存</button>
   </view>

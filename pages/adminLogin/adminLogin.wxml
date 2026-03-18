@@ -1,0 +1,25 @@
+<view class="admin-login-page">
+  <view class="hero-card">
+    <view class="hero-mark">MR</view>
+    <view class="hero-copy">
+      <view class="hero-title">管理员后台</view>
+      <view class="hero-subtitle">微信原生管理端骨架</view>
+    </view>
+  </view>
+
+  <view class="form-card">
+    <view class="form-item">
+      <view class="label">账号</view>
+      <input class="input" value="{{username}}" placeholder="请输入管理员账号" bindinput="onUsernameInput" />
+    </view>
+
+    <view class="form-item">
+      <view class="label">密码</view>
+      <input class="input" password value="{{password}}" placeholder="请输入密码" bindinput="onPasswordInput" />
+    </view>
+
+    <view wx:if="{{error}}" class="error-text">{{error}}</view>
+
+    <button class="submit-btn" loading="{{loading}}" bindtap="submitLogin">登录后台</button>
+  </view>
+</view>

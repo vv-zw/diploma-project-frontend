@@ -5,7 +5,10 @@ App({
   },
 
   onLaunch() {
-    this.checkAndSyncData();
+    this.hydrateUserState().catch((error) => {
+      console.error('hydrate_user_state_failed', error);
+      this.checkAndSyncData();
+    });
   },
 
   getBackendUrl() {
@@ -64,8 +67,10 @@ App({
       title,
       name: title,
       genres: this.normalizeGenres(item),
+      selectedElements: this.normalizeGenres(item),
       rating: Number(item.rating || item.score || 0) || 0,
       cover_url: item.cover_url || item.coverUrl || '',
+      coverUrl: item.cover_url || item.coverUrl || '',
       year: item.year || '',
       director: item.director || '',
       actors: item.actors || '',
@@ -74,11 +79,30 @@ App({
     };
   },
 
+  buildWatchlistCacheItem(entry) {
+    if (!entry || typeof entry !== 'object') {
+      return null;
+    }
+
+    const rawItem = entry.data || entry;
+    const contentType = this.normalizeContentType(entry.type || rawItem.type || rawItem.content_type, '');
+    const normalized = this.buildPreferenceItem(rawItem, contentType);
+    if (!normalized) {
+      return null;
+    }
+
+    return {
+      ...normalized,
+      added_at: entry.added_at || rawItem.added_at || '',
+      addedTime: entry.added_at || rawItem.added_at || Date.now()
+    };
+  },
+
   dedupePreferences(list) {
     const uniqueMap = new Map();
 
     list.forEach((item) => {
-      const normalized = this.buildPreferenceItem(item, item._fallbackType || '');
+      const normalized = this.buildPreferenceItem(item, item?._fallbackType || '');
       if (!normalized) {
         return;
       }
@@ -90,6 +114,57 @@ App({
     });
 
     return Array.from(uniqueMap.values());
+  },
+
+  mergeUniqueItems(list) {
+    const uniqueMap = new Map();
+    (list || []).forEach((item) => {
+      const contentType = this.normalizeContentType(item.content_type || item.type, '');
+      const id = String(item.id || '').trim();
+      if (!contentType || !id) {
+        return;
+      }
+      uniqueMap.set(`${contentType}:${id}`, { ...item, type: contentType, content_type: contentType });
+    });
+    return Array.from(uniqueMap.values());
+  },
+
+  updateTotalListCache() {
+    const merged = this.mergeUniqueItems([
+      ...(wx.getStorageSync('movieList') || []),
+      ...(wx.getStorageSync('showList') || []),
+      ...(wx.getStorageSync('alreadyList') || [])
+    ]);
+    wx.setStorageSync('totalMovieList', merged);
+    return merged;
+  },
+
+  cachePreferenceLists(preferencesInput) {
+    const grouped = Array.isArray(preferencesInput)
+      ? {
+          movie: preferencesInput.filter((item) => this.normalizeContentType(item.content_type || item.type, '') === 'movie'),
+          series: preferencesInput.filter((item) => this.normalizeContentType(item.content_type || item.type, '') === 'series')
+        }
+      : (preferencesInput || {});
+
+    const movieList = this.dedupePreferences((grouped.movie || []).map((item) => ({ ...item, _fallbackType: 'movie' })));
+    const showList = this.dedupePreferences((grouped.series || []).map((item) => ({ ...item, _fallbackType: 'series' })));
+
+    wx.setStorageSync('movieList', movieList);
+    wx.setStorageSync('showList', showList);
+    wx.setStorageSync('seriesList', showList);
+    this.updateTotalListCache();
+    return { movie: movieList, series: showList };
+  },
+
+  cacheWatchlist(watchlist) {
+    const alreadyList = (watchlist || [])
+      .map((item) => this.buildWatchlistCacheItem(item))
+      .filter(Boolean);
+
+    wx.setStorageSync('alreadyList', alreadyList);
+    this.updateTotalListCache();
+    return alreadyList;
   },
 
   collectPreferences() {
@@ -106,17 +181,91 @@ App({
     ]);
   },
 
+  fetchUserPreferences(contentType = '') {
+    const normalizedType = this.normalizeContentType(contentType, '');
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url: `${this.getBackendUrl()}/user-preferences`,
+        data: normalizedType ? { type: normalizedType } : {},
+        success: (res) => {
+          if (res.data && res.data.code === 0) {
+            resolve(res);
+            return;
+          }
+          reject(new Error((res.data && res.data.error) || 'preferences_fetch_failed'));
+        },
+        fail: reject
+      });
+    });
+  },
+
+  refreshPreferenceCache(contentType = '') {
+    return this.fetchUserPreferences(contentType).then((res) => {
+      if (contentType) {
+        const grouped = {
+          movie: wx.getStorageSync('movieList') || [],
+          series: wx.getStorageSync('showList') || []
+        };
+        grouped[this.normalizeContentType(contentType)] = res.data.preferences || [];
+        this.cachePreferenceLists(grouped);
+      } else {
+        this.cachePreferenceLists(res.data.preferences || {});
+      }
+      return res;
+    });
+  },
+
+  fetchWatchlist(contentType = '') {
+    const normalizedType = this.normalizeContentType(contentType, '');
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url: `${this.getBackendUrl()}/watchlist`,
+        data: normalizedType ? { type: normalizedType } : {},
+        success: (res) => {
+          if (res.data && res.data.code === 0) {
+            resolve(res);
+            return;
+          }
+          reject(new Error((res.data && res.data.error) || 'watchlist_fetch_failed'));
+        },
+        fail: reject
+      });
+    });
+  },
+
+  refreshWatchlistCache(contentType = '') {
+    return this.fetchWatchlist(contentType).then((res) => {
+      if (contentType) {
+        const normalizedType = this.normalizeContentType(contentType, '');
+        const currentItems = wx.getStorageSync('alreadyList') || [];
+        const retained = currentItems.filter(
+          (item) => this.normalizeContentType(item.content_type || item.type, '') !== normalizedType
+        );
+        const incoming = (res.data.watchlist || [])
+          .map((item) => this.buildWatchlistCacheItem(item))
+          .filter(Boolean);
+        this.cacheWatchlist([...retained, ...incoming]);
+      } else {
+        this.cacheWatchlist(res.data.watchlist || []);
+      }
+      return res;
+    });
+  },
+
+  hydrateUserState() {
+    return Promise.all([
+      this.refreshPreferenceCache(),
+      this.refreshWatchlistCache()
+    ]);
+  },
+
   checkAndSyncData() {
     const preferences = this.collectPreferences();
-    if (!preferences.length) {
-      return;
-    }
-
     this.syncUserData({
       preferences,
       silent: true
     }).catch((error) => {
-      console.error('启动同步失败:', error);
+      console.error('startup_sync_failed', error);
     });
   },
 
@@ -129,15 +278,6 @@ App({
     } = options;
 
     return new Promise((resolve, reject) => {
-      if (!preferences.length) {
-        const error = new Error('no_valid_preferences');
-        if (typeof onFail === 'function') {
-          onFail(error);
-        }
-        reject(error);
-        return;
-      }
-
       wx.request({
         url: `${this.getBackendUrl()}/sync-user-data`,
         method: 'POST',
@@ -146,27 +286,175 @@ App({
           'Content-Type': 'application/json'
         },
         success: (res) => {
-          if (res.data && res.data.code === 0) {
+          if (!(res.data && res.data.code === 0)) {
+            const error = new Error((res.data && res.data.error) || 'sync_failed');
+            if (!silent) {
+              console.error('sync_user_data_failed', error.message);
+            }
+            if (typeof onFail === 'function') {
+              onFail(error);
+            }
+            reject(error);
+            return;
+          }
+
+          this.refreshPreferenceCache().catch((error) => {
+            console.error('refresh_preference_cache_after_sync_failed', error);
+          }).finally(() => {
             if (typeof onSuccess === 'function') {
               onSuccess(res);
             }
             resolve(res);
-            return;
-          }
-
-          const error = new Error((res.data && res.data.error) || 'sync_failed');
-          if (!silent) {
-            console.error('同步用户数据失败:', error.message);
-          }
-          if (typeof onFail === 'function') {
-            onFail(error);
-          }
-          reject(error);
+          });
         },
         fail: (err) => {
           if (!silent) {
-            console.error('同步用户数据请求失败:', err);
+            console.error('sync_user_data_request_failed', err);
           }
+          if (typeof onFail === 'function') {
+            onFail(err);
+          }
+          reject(err);
+        }
+      });
+    });
+  },
+
+  addWatchlistItem(item, options = {}) {
+    const {
+      onSuccess,
+      onFail
+    } = options;
+    const payloadItem = this.buildPreferenceItem(item, this.normalizeContentType(item?.content_type || item?.type, ''));
+    if (!payloadItem) {
+      const error = new Error('invalid_watchlist_item');
+      if (typeof onFail === 'function') {
+        onFail(error);
+      }
+      return Promise.reject(error);
+    }
+
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url: `${this.getBackendUrl()}/watchlist/add`,
+        method: 'POST',
+        data: {
+          item_id: payloadItem.id,
+          type: payloadItem.content_type,
+          data: payloadItem
+        },
+        header: {
+          'Content-Type': 'application/json'
+        },
+        success: (res) => {
+          if (!(res.data && res.data.code === 0)) {
+            const error = new Error((res.data && res.data.error) || 'watchlist_add_failed');
+            if (typeof onFail === 'function') {
+              onFail(error);
+            }
+            reject(error);
+            return;
+          }
+
+          this.refreshWatchlistCache(payloadItem.content_type).catch((error) => {
+            console.error('refresh_watchlist_cache_after_add_failed', error);
+          }).finally(() => {
+            if (typeof onSuccess === 'function') {
+              onSuccess(res);
+            }
+            resolve(res);
+          });
+        },
+        fail: (err) => {
+          if (typeof onFail === 'function') {
+            onFail(err);
+          }
+          reject(err);
+        }
+      });
+    });
+  },
+
+  removeWatchlistItem(itemId, contentType, options = {}) {
+    const {
+      onSuccess,
+      onFail
+    } = options;
+    const normalizedType = this.normalizeContentType(contentType, '');
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url: `${this.getBackendUrl()}/watchlist/remove`,
+        method: 'POST',
+        data: {
+          item_id: itemId,
+          type: normalizedType
+        },
+        header: {
+          'Content-Type': 'application/json'
+        },
+        success: (res) => {
+          if (!(res.data && res.data.code === 0)) {
+            const error = new Error((res.data && res.data.error) || 'watchlist_remove_failed');
+            if (typeof onFail === 'function') {
+              onFail(error);
+            }
+            reject(error);
+            return;
+          }
+
+          this.refreshWatchlistCache(normalizedType).catch((error) => {
+            console.error('refresh_watchlist_cache_after_remove_failed', error);
+          }).finally(() => {
+            if (typeof onSuccess === 'function') {
+              onSuccess(res);
+            }
+            resolve(res);
+          });
+        },
+        fail: (err) => {
+          if (typeof onFail === 'function') {
+            onFail(err);
+          }
+          reject(err);
+        }
+      });
+    });
+  },
+
+  clearWatchlist(contentType = '', options = {}) {
+    const {
+      onSuccess,
+      onFail
+    } = options;
+    const normalizedType = this.normalizeContentType(contentType, '');
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url: `${this.getBackendUrl()}/watchlist/clear`,
+        method: 'POST',
+        data: normalizedType ? { type: normalizedType } : {},
+        header: {
+          'Content-Type': 'application/json'
+        },
+        success: (res) => {
+          if (!(res.data && res.data.code === 0)) {
+            const error = new Error((res.data && res.data.error) || 'watchlist_clear_failed');
+            if (typeof onFail === 'function') {
+              onFail(error);
+            }
+            reject(error);
+            return;
+          }
+
+          this.refreshWatchlistCache(normalizedType).catch((error) => {
+            console.error('refresh_watchlist_cache_after_clear_failed', error);
+          }).finally(() => {
+            if (typeof onSuccess === 'function') {
+              onSuccess(res);
+            }
+            resolve(res);
+          });
+        },
+        fail: (err) => {
           if (typeof onFail === 'function') {
             onFail(err);
           }
@@ -205,7 +493,7 @@ App({
 
           const error = new Error((res.data && res.data.error) || 'refresh_failed');
           if (!silent) {
-            console.error('刷新推荐失败:', error.message);
+            console.error('refresh_recommendations_failed', error.message);
           }
           if (typeof onFail === 'function') {
             onFail(error);
@@ -214,7 +502,7 @@ App({
         },
         fail: (err) => {
           if (!silent) {
-            console.error('刷新推荐请求失败:', err);
+            console.error('refresh_recommendations_request_failed', err);
           }
           if (typeof onFail === 'function') {
             onFail(err);
@@ -348,7 +636,7 @@ App({
       return result;
     }).catch((error) => {
       if (!silent) {
-        console.error('同步并刷新失败:', error);
+        console.error('sync_and_refresh_failed', error);
       }
       if (typeof onFail === 'function') {
         onFail(error);

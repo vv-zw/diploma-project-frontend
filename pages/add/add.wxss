@@ -1,109 +1,214 @@
-/* pages/add/add.wxss */
-.container {
-  padding: 20rpx 30rpx;
-  background-color: #f9f9f9;
+.page-container {
   min-height: 100vh;
+  padding: 26rpx 26rpx 180rpx;
+  background:
+    radial-gradient(circle at top left, rgba(255, 244, 226, 0.95) 0, rgba(255, 244, 226, 0) 34%),
+    linear-gradient(180deg, #f7f0e7 0%, #f2eadf 46%, #efe6da 100%);
+  box-sizing: border-box;
 }
 
-.form-title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #333;
-  text-align: center;
-  margin: 30rpx 0 50rpx;
+.hero-card,
+.form-card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 252, 247, 0.94);
+  border: 1rpx solid rgba(122, 92, 62, 0.08);
+  border-radius: 32rpx;
+  box-shadow: 0 20rpx 50rpx rgba(63, 42, 22, 0.08);
 }
 
-.input-item {
+.hero-card {
+  padding: 32rpx 30rpx;
+  margin-bottom: 24rpx;
+  background: linear-gradient(135deg, #fff8ee 0%, #f7ecdf 58%, #f0dfd1 100%);
+}
+
+.hero-top {
+  position: relative;
+  z-index: 1;
   display: flex;
-  margin-bottom: 30rpx;
-  padding: 20rpx;
-  background-color: #fff;
-  border-radius: 10rpx;
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.label {
-  font-size: 28rpx;
-  color: #666;
-  width: 140rpx;
-  padding-top: 5rpx;
+.hero-glow {
+  position: absolute;
+  border-radius: 999rpx;
+  opacity: 0.7;
 }
 
-.input-field, .picker-field, .textarea-field {
-  flex: 1;
-  font-size: 28rpx;
-  color: #333;
-  padding: 5rpx 0;
+.hero-glow-one {
+  top: -50rpx;
+  right: -20rpx;
+  width: 220rpx;
+  height: 220rpx;
+  background: rgba(200, 100, 59, 0.12);
 }
 
-.picker-display {
+.hero-glow-two {
+  right: 110rpx;
+  bottom: -70rpx;
+  width: 180rpx;
+  height: 180rpx;
+  background: rgba(36, 54, 60, 0.1);
+}
+
+.back-chip,
+.hero-tag {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.68);
+  color: #6c5442;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.hero-tag {
+  letter-spacing: 3rpx;
+  font-size: 20rpx;
+}
+
+.page-title {
+  position: relative;
+  z-index: 1;
+  margin-top: 24rpx;
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #24170f;
+}
+
+.page-subtitle {
+  position: relative;
+  z-index: 1;
+  margin-top: 12rpx;
+  font-size: 25rpx;
+  line-height: 1.8;
+  color: #766657;
+}
+
+.form-card {
+  padding: 28rpx;
+  margin-bottom: 22rpx;
+}
+
+.section-title {
+  font-size: 31rpx;
+  font-weight: 700;
+  color: #24180f;
+}
+
+.section-subtitle {
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  line-height: 1.7;
+  color: #8a7a6a;
+}
+
+.field-block {
+  margin-top: 24rpx;
+}
+
+.field-label {
+  margin-bottom: 14rpx;
+  font-size: 27rpx;
+  font-weight: 600;
+  color: #564536;
+}
+
+.input-field,
+.picker-field,
+.picker-display,
+.textarea-field {
+  width: 100%;
+  box-sizing: border-box;
   font-size: 28rpx;
-  color: #333;
+  color: #2d221b;
+}
+
+.input-field,
+.picker-display,
+.textarea-field {
+  padding: 24rpx 22rpx;
+  border-radius: 22rpx;
+  background: #fbf7f2;
+  border: 1rpx solid rgba(122, 92, 62, 0.08);
 }
 
 .textarea-field {
-  min-height: 120rpx;
-  line-height: 1.6;
+  min-height: 180rpx;
+  line-height: 1.8;
 }
 
-.elements-section {
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.checkbox-group {
+.tag-grid {
   display: flex;
   flex-wrap: wrap;
-  margin-left: 140rpx;
-  width: calc(100% - 140rpx);
+  gap: 18rpx;
+  margin-top: 24rpx;
 }
 
-.checkbox-item {
-  display: flex;
+.tag-item {
+  display: inline-flex;
   align-items: center;
-  margin-right: 25rpx;
-  margin-bottom: 15rpx;
-  font-size: 26rpx;
+  padding: 14rpx 20rpx;
+  border-radius: 999rpx;
+  background: #f6efe6;
+  color: #614c3c;
+  font-size: 24rpx;
 }
 
-.checkbox-item checkbox {
+.tag-item checkbox {
+  transform: scale(0.75);
   margin-right: 8rpx;
-  transform: scale(0.8);
 }
 
-.button-group {
+.tag-item-active {
+  background: #eadcc9;
+  color: #3f2d22;
+}
+
+.tag-item .wx-checkbox-input {
+  width: 28rpx !important;
+  height: 28rpx !important;
+  border-radius: 50% !important;
+}
+
+.tag-item .wx-checkbox-input-checked {
+  background: #c8643b !important;
+  border-color: #c8643b !important;
+}
+
+.action-bar {
+  position: fixed;
+  left: 26rpx;
+  right: 26rpx;
+  bottom: 34rpx;
   display: flex;
-  justify-content: space-between;
-  margin-top: 50rpx;
-  padding: 0 20rpx;
+  gap: 18rpx;
 }
 
-.back-btn, .save-btn {
-  width: 48%;
-  height: 90rpx;
-  line-height: 90rpx;
-  font-size: 30rpx;
-  border-radius: 10rpx;
+.action-bar button {
+  flex: 1;
+  height: 92rpx;
+  line-height: 92rpx;
+  border-radius: 999rpx;
+  font-size: 29rpx;
+  font-weight: 700;
+}
+
+.action-bar button::after {
+  border: none;
 }
 
 .back-btn {
-  background-color: #f0f0f0;
-  color: #333;
+  background: linear-gradient(135deg, #f0e5d7 0%, #e5d5c0 100%);
+  color: #584537;
 }
 
 .save-btn {
-  background-color: #07c160;
+  background: linear-gradient(135deg, #d16f45 0%, #ba5b36 100%);
   color: #fff;
-}
-
-/* 复选框样式 - 使用类选择器避免标签选择器 */
-.checkbox-checked .wx-checkbox-input-checked {
-  background-color: #07c160 !important;
-  border-color: #07c160 !important;
-}
-
-/* 修复WXSS不允许标签选择器的问题 */
-.checkbox-item .wx-checkbox-input {
-  width: 30rpx !important;
-  height: 30rpx !important;
+  box-shadow: 0 18rpx 34rpx rgba(200, 100, 59, 0.3);
 }

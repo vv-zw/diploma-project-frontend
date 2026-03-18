@@ -438,6 +438,26 @@ Page({
       return;
     }
 
+    const app = getApp();
+    if (!app || typeof app.addWatchlistItem !== 'function') {
+      wx.showToast({ title: '当前版本不支持待看同步', icon: 'none' });
+      return;
+    }
+
+    app.addWatchlistItem({
+      ...series,
+      type: 'series',
+      content_type: 'series'
+    }).then(() => {
+      this.loadAlreadyData();
+      wx.showToast({ title: '已加入待看清单', icon: 'success' });
+      this.syncPreferencesAfterWatchlistUpdate('series');
+    }).catch((error) => {
+      console.error('add_watchlist_failed', error);
+      wx.showToast({ title: '加入待看失败', icon: 'none' });
+    });
+    return;
+
     const newSeries = {
       id: series.id,
       name: series.title || series.name,
@@ -502,6 +522,21 @@ Page({
       content: '确定要从想看清单中删除吗？',
       success: (res) => {
         if (res.confirm) {
+          const app = getApp();
+          if (!app || typeof app.removeWatchlistItem !== 'function') {
+            wx.showToast({ title: '当前版本不支持待看同步', icon: 'none' });
+            return;
+          }
+
+          app.removeWatchlistItem(id, 'series').then(() => {
+            this.loadAlreadyData();
+            wx.showToast({ title: '已从待看清单移除', icon: 'none' });
+          }).catch((error) => {
+            console.error('remove_watchlist_failed', error);
+            wx.showToast({ title: '移除失败，请重试', icon: 'none' });
+          });
+          return;
+
           let alreadyList = wx.getStorageSync('alreadyList') || [];
           const newAlreadyList = alreadyList.filter((item) => item.id !== id);
           wx.setStorageSync('alreadyList', newAlreadyList);

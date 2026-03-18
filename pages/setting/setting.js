@@ -1,57 +1,62 @@
-// pages/setting/setting.js
 Page({
   data: {
-    theme: 'light', // 默认浅色主题
-    notifications: true, // 通知开关
-    recommendMode: 'auto', // 推荐模式：自动/手动
-    cacheSize: '0 MB' // 缓存大小
+    theme: 'light',
+    notifications: true,
+    recommendMode: 'auto',
+    recommendModeIndex: 0,
+    recommendModeOptions: ['自动推荐', '手动筛选'],
+    cacheSize: '0 MB'
   },
 
   onLoad() {
-    // 加载已保存的设置
     this.loadSettings();
-    // 计算缓存大小
     this.calculateCacheSize();
   },
 
-  // 加载本地保存的设置
-  loadSettings() {
-    const savedSettings = wx.getStorageSync('appSettings') || {};
-    this.setData({
-      theme: savedSettings.theme || 'light',
-      notifications: savedSettings.notifications !== undefined ? savedSettings.notifications : true,
-      recommendMode: savedSettings.recommendMode || 'auto'
+  saveSettings(extra = {}) {
+    wx.setStorageSync('appSettings', {
+      theme: this.data.theme,
+      notifications: this.data.notifications,
+      recommendMode: this.data.recommendMode,
+      ...extra
     });
   },
 
-  // 切换主题
+  loadSettings() {
+    const savedSettings = wx.getStorageSync('appSettings') || {};
+    const recommendMode = savedSettings.recommendMode || 'auto';
+
+    this.setData({
+      theme: savedSettings.theme || 'light',
+      notifications: savedSettings.notifications !== undefined ? savedSettings.notifications : true,
+      recommendMode,
+      recommendModeIndex: recommendMode === 'manual' ? 1 : 0
+    });
+  },
+
   toggleTheme(e) {
     const theme = e.detail.value ? 'dark' : 'light';
     this.setData({ theme });
-    wx.setStorageSync('appSettings', { ...this.data, theme });
-    
-    // 可以在这里添加主题切换的UI效果
+    this.saveSettings({ theme });
     wx.showToast({
       title: `${theme === 'dark' ? '深色' : '浅色'}主题已启用`,
       icon: 'none'
     });
   },
 
-  // 切换通知开关
   toggleNotifications(e) {
     const notifications = e.detail.value;
     this.setData({ notifications });
-    wx.setStorageSync('appSettings', { ...this.data, notifications });
+    this.saveSettings({ notifications });
   },
 
-  // 切换推荐模式
   changeRecommendMode(e) {
-    const recommendMode = e.detail.value;
-    this.setData({ recommendMode });
-    wx.setStorageSync('appSettings', { ...this.data, recommendMode });
+    const recommendModeIndex = Number(e.detail.value);
+    const recommendMode = recommendModeIndex === 0 ? 'auto' : 'manual';
+    this.setData({ recommendMode, recommendModeIndex });
+    this.saveSettings({ recommendMode });
   },
 
-  // 计算缓存大小
   calculateCacheSize() {
     wx.getStorageInfo({
       success: (res) => {
@@ -64,7 +69,6 @@ Page({
     });
   },
 
-  // 清除缓存
   clearCache() {
     wx.showModal({
       title: '确认清除',
@@ -73,7 +77,13 @@ Page({
         if (res.confirm) {
           wx.clearStorage({
             success: () => {
-              this.setData({ cacheSize: '0 MB' });
+              this.setData({
+                cacheSize: '0 MB',
+                theme: 'light',
+                notifications: true,
+                recommendMode: 'auto',
+                recommendModeIndex: 0
+              });
               wx.showToast({ title: '缓存已清除', icon: 'success' });
             },
             fail: () => {
@@ -85,7 +95,12 @@ Page({
     });
   },
 
-  // 返回上一页
+  goToAdmin() {
+    wx.navigateTo({
+      url: '/pages/adminLogin/adminLogin'
+    });
+  },
+
   goBack() {
     wx.navigateBack();
   }
