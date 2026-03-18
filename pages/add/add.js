@@ -7,7 +7,25 @@ Page({
     types: ['电影', '剧集', '综艺', '待看电影', '待看剧集'],
     typeIndex: 0,
     comment: '',
-    elements: ['古装', '爱情', '战争', '谍战', '悬疑', '恐怖', '家庭', '搞笑', '警匪', '动画', '剧情', '纪录片', '科幻', '国产剧', '美剧', '韩剧', '热门'],
+    elements: [
+      { label: '古装', selected: false },
+      { label: '爱情', selected: false },
+      { label: '战争', selected: false },
+      { label: '谍战', selected: false },
+      { label: '悬疑', selected: false },
+      { label: '恐怖', selected: false },
+      { label: '家庭', selected: false },
+      { label: '搞笑', selected: false },
+      { label: '警匪', selected: false },
+      { label: '动画', selected: false },
+      { label: '剧情', selected: false },
+      { label: '纪录片', selected: false },
+      { label: '科幻', selected: false },
+      { label: '国产剧', selected: false },
+      { label: '美剧', selected: false },
+      { label: '韩剧', selected: false },
+      { label: '热门', selected: false }
+    ],
     selectedElements: [],
     showElements: true
   },
@@ -32,8 +50,20 @@ Page({
     this.setData({ comment: e.detail.value });
   },
 
-  checkboxChange(e) {
-    this.setData({ selectedElements: e.detail.value || [] });
+  syncSelectedElements(elements) {
+    const selectedElements = elements.filter((item) => item.selected).map((item) => item.label);
+    this.setData({
+      elements,
+      selectedElements
+    });
+  },
+
+  toggleElement(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    const elements = this.data.elements.map((item, currentIndex) => (
+      currentIndex === index ? { ...item, selected: !item.selected } : item
+    ));
+    this.syncSelectedElements(elements);
   },
 
   getCategoryKey(type) {
@@ -197,18 +227,19 @@ Page({
   },
 
   resetForm() {
+    const resetElements = this.data.elements.map((item) => ({ ...item, selected: false }));
     this.setData({
       name: '',
       score: 5,
       scoreIndex: 4,
       comment: '',
+      elements: resetElements,
       selectedElements: [],
       showElements: false
     }, () => {
       setTimeout(() => {
         this.setData({
-          showElements: true,
-          selectedElements: []
+          showElements: true
         });
       }, 100);
     });
