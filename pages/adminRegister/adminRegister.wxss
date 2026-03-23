@@ -1,13 +1,11 @@
-.admin-login-page {
+.admin-register-page {
   min-height: 100vh;
   padding: 40rpx 28rpx;
   background: linear-gradient(180deg, #efe3cf 0%, #f7f2ea 100%);
 }
 
 .hero-card,
-.form-card,
-.status-card,
-.error-panel {
+.form-card {
   background: rgba(255, 252, 247, 0.96);
   border-radius: 28rpx;
   padding: 32rpx;
@@ -34,17 +32,13 @@
   font-weight: 700;
 }
 
-.hero-title,
-.empty-title,
-.status-title {
+.hero-title {
   font-size: 40rpx;
   font-weight: 700;
   color: #241810;
 }
 
-.hero-subtitle,
-.empty-desc,
-.status-desc {
+.hero-subtitle {
   margin-top: 8rpx;
   color: #7a6758;
   font-size: 26rpx;
@@ -71,18 +65,10 @@
   box-sizing: border-box;
 }
 
-.error-text,
-.error-panel {
-  color: #b2411e;
-  font-size: 26rpx;
-}
-
 .error-text {
+  color: #b2411e;
   margin-bottom: 20rpx;
-}
-
-.error-panel {
-  margin-top: 24rpx;
+  font-size: 26rpx;
 }
 
 .submit-btn {

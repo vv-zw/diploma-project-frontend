@@ -154,16 +154,14 @@
 }
 
 .tag-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  justify-items: center;
-  column-gap: 16rpx;
-  row-gap: 16rpx;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   margin-top: 20rpx;
 }
 
 .tag-item {
-  width: 92%;
+  width: calc((100% - 32rpx) / 3);
   min-height: 60rpx;
   display: inline-flex;
   align-items: center;
@@ -180,6 +178,7 @@
   box-sizing: border-box;
   gap: 8rpx;
   overflow: hidden;
+  margin-bottom: 16rpx;
 }
 
 .tag-item-active {
@@ -217,11 +216,14 @@
   border: none;
 }
 
+.comment-card {
+  position: relative;
+  z-index: 2;
+}
+
 .action-bar {
-  position: fixed;
-  left: 26rpx;
-  right: 26rpx;
-  bottom: 34rpx;
+  margin-top: 10rpx;
+  padding-bottom: 34rpx;
   display: flex;
   gap: 18rpx;
 }

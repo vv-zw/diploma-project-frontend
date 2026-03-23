@@ -8,7 +8,6 @@
   </view>
 
   <view wx:if="{{error}}" class="error-box">{{error}}</view>
-
   <view wx:if="{{loading}}" class="loading-box">正在加载仪表盘...</view>
 
   <view wx:if="{{stats && !loading}}" class="stats-grid">
@@ -40,8 +39,7 @@
 
   <view class="action-card">
     <button class="primary-btn" bindtap="goToContent">进入内容管理</button>
-    <button class="secondary-btn" data-type="movie" bindtap="refreshRecommendations">刷新电影推荐</button>
-    <button class="secondary-btn" data-type="series" bindtap="refreshRecommendations">刷新剧集推荐</button>
+    <button class="secondary-btn" bindtap="goToBehavior">进入用户行为分析</button>
   </view>
 
   <view wx:if="{{stats && !loading}}" class="meta-card">

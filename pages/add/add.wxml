@@ -38,13 +38,13 @@
     </view>
   </view>
 
-  <view class="form-card" wx:if="{{showElements}}">
+  <view class="form-card">
     <view class="section-title">内容分类</view>
-    <view class="section-subtitle">可多选，用于后续推荐和内容整理。</view>
+    <view class="section-subtitle">可多选，用于后续推荐和内容整理。不选时会自动归为“未分类”。</view>
     <view class="selection-summary">已选择 {{selectedElements.length}} 项</view>
 
     <view class="tag-grid">
-      <button
+      <view
         class="tag-item {{item.selected ? 'tag-item-active' : ''}}"
         wx:for="{{elements}}"
         wx:key="label"
@@ -53,24 +53,29 @@
       >
         <view class="tag-indicator {{item.selected ? 'tag-indicator-active' : ''}}"></view>
         <text class="tag-label">{{item.label}}</text>
-      </button>
+      </view>
     </view>
   </view>
 
-  <view class="form-card">
+  <view class="form-card comment-card" catchtap="noop">
     <view class="section-title">短评</view>
-    <view class="section-subtitle">写下你的印象、推荐理由或观感。</view>
+    <view class="section-subtitle">写下你的印象、推荐理由或观感。留空时会自动补成“暂无短评”。</view>
     <textarea
       class="textarea-field"
       placeholder="说点什么..."
       bindinput="inputComment"
       value="{{comment}}"
       auto-height
+      show-confirm-bar="{{false}}"
+      cursor-spacing="220"
+      maxlength="300"
+      hold-keyboard="{{true}}"
+      adjust-position="{{true}}"
     />
   </view>
 
   <view class="action-bar">
     <button class="back-btn" bindtap="goBack">返回</button>
-    <button class="save-btn" bindtap="save">保存</button>
+    <button class="save-btn" bindtap="save" loading="{{saving}}" disabled="{{saving}}">保存</button>
   </view>
 </view>
