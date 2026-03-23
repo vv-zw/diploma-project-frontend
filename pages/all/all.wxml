@@ -1,102 +1,61 @@
-<!-- 引入WXS工具模块 -->
-<wxs module="utils">
-  var getCoverUrl = function(item) {
-    return item.coverUrl || item.cover_url || 'https://via.placeholder.com/150x220?text=No+Image';
-  };
-  
-  var getTypeName = function(type) {
-    if (type === 'series' || type === '剧集') return '剧集';
-    if (type === 'movie' || type === '电影') return '电影';
-    if (type === '综艺') return '综艺';
-    return type || '未知类型';
-  };
-  
-  var getRatingText = function(item) {
-    return item.rating || item.score || '暂无评分';
-  };
-  
-  var getYearText = function(item) {
-    return item.year || '未知年份';
-  };
-  
-  module.exports = {
-    getCoverUrl: getCoverUrl,
-    getTypeName: getTypeName,
-    getRatingText: getRatingText,
-    getYearText: getYearText
-  };
-</wxs>
-
 <view class="container">
-  <!-- 搜索栏（全部页面简化版） -->
   <view class="search-bar">
     <text class="page-title">全部影视</text>
     <view class="action-buttons">
-      <button class="batch-btn" bindtap="toggleSelectAll">
-        {{selectedElements.length > 0 ? '取消全选' : '全选'}}
+      <button class="batch-btn compact-btn" bindtap="toggleSelectAll">
+        {{selectedElements.length === totalList.length && totalList.length ? '取消全选' : '全选'}}
       </button>
-      <button class="clear-btn" bindtap="clearAllData">清空全部</button>
+      <button class="clear-btn compact-btn" bindtap="clearAllData">清空全部</button>
     </view>
   </view>
-  
-  <!-- 操作按钮栏 -->
+
   <view class="top-bar" wx:if="{{selectedElements.length > 0}}">
-    <button class="delete-btn" bindtap="batchDelete">
-      批量删除({{selectedElements.length}})
-    </button>
+    <button class="delete-btn" bindtap="batchDelete">批量删除（{{selectedElements.length}}）</button>
   </view>
-  
-  <!-- 加载状态 -->
+
   <view class="loading" wx:if="{{loading}}">
     <text>加载中...</text>
   </view>
-  
-  <!-- 无数据时显示 -->
-  <view class="empty" wx:elif="{{totalList.length === 0 && !loading}}">
-    <text>暂无影视数据</text>
+
+  <view class="empty" wx:elif="{{totalList.length === 0}}">
+    <text>暂无内容</text>
   </view>
-  
-  <!-- 有数据时显示网格 -->
-  <view class="movie-grid" wx:else>
-    <view class="movie-item" wx:for="{{totalList}}" wx:key="id">
-      <!-- 选择框 -->
-      <checkbox 
-        class="selector" 
-        value="{{item.id || item.name}}" 
-        checked="{{selectedElements.indexOf(item.id || item.name) > -1}}"
-        bindtap="selectItem"
-        data-id="{{item.id || item.name}}"
-      />
-      
-      <!-- 封面图 -->
-      <image 
-        class="cover-image" 
-        src="{{utils.getCoverUrl(item)}}" 
-        mode="aspectFill"
-        lazy-load
-        fallback-src="https://via.placeholder.com/150x220?text=No+Image"
-      ></image>
-      
-      <!-- 影视信息 -->
-      <view class="movie-info">
-        <text class="title">{{item.name || item.title}}</text>
-        <text class="type">类型: {{utils.getTypeName(item.type)}}</text>
-        <text class="rating">评分: {{utils.getRatingText(item)}}</text>
-        <text class="year">年份: {{utils.getYearText(item)}}</text>
-        <text class="tags" wx:if="{{item.selectedElements && item.selectedElements.length > 0}}">
-          标签: {{item.selectedElements.join('、')}}
-        </text>
+
+  <view class="grid-list" wx:else>
+    <view class="grid-row" wx:for="{{rowCount}}" wx:for-index="rowIndex" wx:key="rowIndex">
+      <view class="grid-col">
+        <view class="movie-item" wx:if="{{rowIndex * 2 < totalList.length}}">
+          <checkbox class="selector" value="{{totalList[rowIndex * 2].uniqueId}}" checked="{{selectedElements.indexOf(totalList[rowIndex * 2].uniqueId) > -1}}" bindtap="selectItem" data-key="{{totalList[rowIndex * 2].uniqueId}}" />
+          <image class="cover-image" src="{{totalList[rowIndex * 2].coverUrl || totalList[rowIndex * 2].cover_url || '/images/default_movie.png'}}" mode="aspectFill"></image>
+          <view class="movie-info">
+            <text class="title">{{totalList[rowIndex * 2].title || totalList[rowIndex * 2].name}}</text>
+            <text class="type">{{totalList[rowIndex * 2].content_type === 'series' ? '剧集' : '电影'}}</text>
+            <text class="rating">评分：{{totalList[rowIndex * 2].rating || '暂无评分'}}</text>
+            <text class="year">年份：{{totalList[rowIndex * 2].year || '未知'}}</text>
+            <text class="tags" wx:if="{{totalList[rowIndex * 2].selectedElements.length}}">
+              标签：{{totalList[rowIndex * 2].selectedElements.join(' / ')}}
+            </text>
+          </view>
+          <button class="item-delete-btn" bindtap="deleteItem" data-key="{{totalList[rowIndex * 2].uniqueId}}">删除</button>
+        </view>
       </view>
-      
-      <!-- 删除按钮 -->
-      <button 
-        class="item-delete-btn" 
-        bindtap="deleteItem" 
-        data-id="{{item.id}}"
-        data-type="{{item.type}}"
-      >
-        删除
-      </button>
+
+      <view class="grid-col">
+        <view class="movie-item" wx:if="{{rowIndex * 2 + 1 < totalList.length}}">
+          <checkbox class="selector" value="{{totalList[rowIndex * 2 + 1].uniqueId}}" checked="{{selectedElements.indexOf(totalList[rowIndex * 2 + 1].uniqueId) > -1}}" bindtap="selectItem" data-key="{{totalList[rowIndex * 2 + 1].uniqueId}}" />
+          <image class="cover-image" src="{{totalList[rowIndex * 2 + 1].coverUrl || totalList[rowIndex * 2 + 1].cover_url || '/images/default_movie.png'}}" mode="aspectFill"></image>
+          <view class="movie-info">
+            <text class="title">{{totalList[rowIndex * 2 + 1].title || totalList[rowIndex * 2 + 1].name}}</text>
+            <text class="type">{{totalList[rowIndex * 2 + 1].content_type === 'series' ? '剧集' : '电影'}}</text>
+            <text class="rating">评分：{{totalList[rowIndex * 2 + 1].rating || '暂无评分'}}</text>
+            <text class="year">年份：{{totalList[rowIndex * 2 + 1].year || '未知'}}</text>
+            <text class="tags" wx:if="{{totalList[rowIndex * 2 + 1].selectedElements.length}}">
+              标签：{{totalList[rowIndex * 2 + 1].selectedElements.join(' / ')}}
+            </text>
+          </view>
+          <button class="item-delete-btn" bindtap="deleteItem" data-key="{{totalList[rowIndex * 2 + 1].uniqueId}}">删除</button>
+        </view>
+      </view>
     </view>
   </view>
 </view>

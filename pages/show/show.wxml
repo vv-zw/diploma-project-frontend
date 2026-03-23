@@ -1,83 +1,113 @@
 <view class="container">
-  <!-- 搜索栏 -->
   <view class="search-bar">
-    <input 
-      class="search-input" 
-      placeholder="请输入剧集名称" 
+    <input
+      class="search-input"
+      placeholder="请输入剧集名称"
       value="{{searchName}}"
       bindinput="onSearchInput"
     />
     <button class="search-btn" bindtap="searchShow" wx:if="{{!loading}}">搜索</button>
     <button class="search-btn" disabled wx:else>加载中...</button>
   </view>
-  
-  <!-- 操作按钮栏 -->
+
   <view class="top-bar">
     <button class="batch-btn" bindtap="batchSearchShows">批量查询</button>
     <button class="delete-btn" bindtap="batchDelete" wx:if="{{selectedElements.length > 0}}">
-      批量删除({{selectedElements.length}})
+      批量删除（{{selectedElements.length}}）
     </button>
     <button class="clear-btn" bindtap="clearHistory">清空历史</button>
   </view>
-  
-  <!-- 错误提示 -->
+
   <view class="error-msg" wx:if="{{errorMsg}}">
     {{errorMsg}}
   </view>
-  
-  <!-- 加载状态 -->
+
   <view class="loading" wx:if="{{loading || detailLoading}}">
     <text>加载中...</text>
   </view>
-  
-  <!-- 剧集列表为空 -->
+
   <view class="empty" wx:elif="{{showList.length === 0 && !loading && !detailLoading}}">
     <text>暂无剧集数据，搜索添加吧</text>
   </view>
-  
-  <!-- 剧集网格列表 - 修改类名以匹配WXSS -->
-  <view class="drama-grid" wx:else>
-    <view class="drama-item" wx:for="{{showList}}" wx:key="id">
-      <!-- 选择框 -->
-      <checkbox class="selector" value="{{item.id || item.name}}" bindchange="checkboxChange"/>
-      
-      <!-- 封面图 -->
-      <image 
-        class="cover-image" 
-        src="{{item.coverUrl || item.cover_url || '/images/default-show.png'}}" 
-        mode="aspectFill"
-        lazy-load
-      ></image>
-      
-      <!-- 剧集信息 - 修改类名以匹配WXSS -->
-      <view class="drama-info">
-        <text class="title">{{item.name || item.title}}</text>
-        <text class="rating">评分: {{item.rating || '暂无'}}</text>
-        <text class="genres">类型: {{item.genres || '未知'}}</text>
-        <text class="year">年份: {{item.year}}</text>
-        <text class="episodes" wx:if="{{item.episodes}}">集数: {{item.episodes}}</text>
-        <text class="region" wx:if="{{item.region}}">地区: {{item.region}}</text>
+
+  <view class="grid-list" wx:else>
+    <view class="grid-row" wx:for="{{rowCount}}" wx:for-index="rowIndex" wx:key="rowIndex">
+      <view class="grid-col">
+        <view class="drama-item" wx:if="{{rowIndex * 2 < showList.length}}">
+          <checkbox
+            class="selector"
+            value="{{showList[rowIndex * 2].id || showList[rowIndex * 2].name}}"
+            checked="{{selectedElements.indexOf(showList[rowIndex * 2].id || showList[rowIndex * 2].name) > -1}}"
+            bindtap="handleCheckboxTap"
+            data-value="{{showList[rowIndex * 2].id || showList[rowIndex * 2].name}}"
+          />
+          <image
+            class="cover-image"
+            src="{{showList[rowIndex * 2].coverUrl || showList[rowIndex * 2].cover_url || '/images/default-show.png'}}"
+            mode="aspectFill"
+            lazy-load
+          ></image>
+          <view class="drama-info">
+            <text class="title">{{showList[rowIndex * 2].name || showList[rowIndex * 2].title}}</text>
+            <text class="rating">评分：{{showList[rowIndex * 2].rating || '暂无'}}</text>
+            <text class="genres">类型：{{showList[rowIndex * 2].genres || '未知'}}</text>
+            <text class="year">年份：{{showList[rowIndex * 2].year || '未知'}}</text>
+            <text class="episodes" wx:if="{{showList[rowIndex * 2].episodes}}">集数：{{showList[rowIndex * 2].episodes}}</text>
+            <text class="region" wx:if="{{showList[rowIndex * 2].region}}">地区：{{showList[rowIndex * 2].region}}</text>
+          </view>
+          <button
+            class="item-delete-btn"
+            bindtap="deleteShow"
+            data-id="{{showList[rowIndex * 2].id}}"
+            data-name="{{showList[rowIndex * 2].name || showList[rowIndex * 2].title}}"
+          >
+            删除
+          </button>
+        </view>
       </view>
-      
-      <!-- 删除按钮 -->
-      <button 
-        class="item-delete-btn" 
-        bindtap="deleteShow" 
-        data-id="{{item.id}}" 
-        data-name="{{item.name || item.title}}"
-      >
-        删除
-      </button>
+
+      <view class="grid-col">
+        <view class="drama-item" wx:if="{{rowIndex * 2 + 1 < showList.length}}">
+          <checkbox
+            class="selector"
+            value="{{showList[rowIndex * 2 + 1].id || showList[rowIndex * 2 + 1].name}}"
+            checked="{{selectedElements.indexOf(showList[rowIndex * 2 + 1].id || showList[rowIndex * 2 + 1].name) > -1}}"
+            bindtap="handleCheckboxTap"
+            data-value="{{showList[rowIndex * 2 + 1].id || showList[rowIndex * 2 + 1].name}}"
+          />
+          <image
+            class="cover-image"
+            src="{{showList[rowIndex * 2 + 1].coverUrl || showList[rowIndex * 2 + 1].cover_url || '/images/default-show.png'}}"
+            mode="aspectFill"
+            lazy-load
+          ></image>
+          <view class="drama-info">
+            <text class="title">{{showList[rowIndex * 2 + 1].name || showList[rowIndex * 2 + 1].title}}</text>
+            <text class="rating">评分：{{showList[rowIndex * 2 + 1].rating || '暂无'}}</text>
+            <text class="genres">类型：{{showList[rowIndex * 2 + 1].genres || '未知'}}</text>
+            <text class="year">年份：{{showList[rowIndex * 2 + 1].year || '未知'}}</text>
+            <text class="episodes" wx:if="{{showList[rowIndex * 2 + 1].episodes}}">集数：{{showList[rowIndex * 2 + 1].episodes}}</text>
+            <text class="region" wx:if="{{showList[rowIndex * 2 + 1].region}}">地区：{{showList[rowIndex * 2 + 1].region}}</text>
+          </view>
+          <button
+            class="item-delete-btn"
+            bindtap="deleteShow"
+            data-id="{{showList[rowIndex * 2 + 1].id}}"
+            data-name="{{showList[rowIndex * 2 + 1].name || showList[rowIndex * 2 + 1].title}}"
+          >
+            删除
+          </button>
+        </view>
+      </view>
     </view>
   </view>
-  
-  <!-- 历史记录 -->
+
   <view class="history-section" wx:if="{{searchHistory.length > 0}}">
     <view class="history-title">搜索历史</view>
     <view class="history-list">
-      <text 
-        class="history-item" 
-        wx:for="{{searchHistory}}" 
+      <text
+        class="history-item"
+        wx:for="{{searchHistory}}"
         wx:key="index"
         data-name="{{item}}"
         bindtap="selectFromHistory"
