@@ -28,20 +28,20 @@ Page({
   },
 
   buildFallbackItem(name, contentType) {
-    const title = String(name || '').trim() || 'Untitled';
+    const title = String(name || '').trim() || '未命名条目';
     return {
       id: `${contentType}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       title,
       name: title,
-      rating: 'N/A',
-      genres: 'Unknown',
+      rating: '暂无评分',
+      genres: '未知',
       year: '',
       type: contentType,
       content_type: contentType,
       coverUrl: '',
       cover_url: '',
-      selectedElements: ['Unknown'],
-      comment: 'No comment'
+      selectedElements: ['未知'],
+      comment: '暂无短评'
     };
   },
 
@@ -60,7 +60,7 @@ Page({
       selectedElements = [];
     }
 
-    const title = item.title || item.name || 'Untitled';
+    const title = item.title || item.name || '未命名条目';
     const rawId = String(item.id || title).trim();
 
     return {
@@ -70,12 +70,13 @@ Page({
       title,
       type: contentType,
       content_type: contentType,
-      rating: item.rating || item.rate || item.score || 'N/A',
-      genres: item.genres || (selectedElements.length ? selectedElements.join(' / ') : 'Unknown'),
+      rating: item.rating || item.rate || item.score || '暂无评分',
+      genres: item.genres || (selectedElements.length ? selectedElements.join(' / ') : '未知'),
       year: item.year || item.release_date || '',
       coverUrl: item.coverUrl || item.cover_url || item.image || '',
       cover_url: item.cover_url || item.coverUrl || item.image || '',
       selectedElements,
+      comment: item.comment || '暂无短评',
       uniqueId: `${contentType}:${rawId}`
     };
   },
@@ -101,15 +102,36 @@ Page({
     wx.setStorageSync('totalMovieList', totalMovieList);
   },
 
+  applySelectionState(totalList, selectedElements = this.data.selectedElements) {
+    const selectedSet = new Set(selectedElements || []);
+    return (totalList || []).map((item) => ({
+      ...item,
+      checked: selectedSet.has(item.uniqueId)
+    }));
+  },
+
+  findExistingItemByName(list, targetItem, requestedName = '') {
+    const targetKey = String(targetItem?.id || targetItem?.title || targetItem?.name || '');
+    const targetName = String(targetItem?.name || targetItem?.title || requestedName || '').trim();
+    return (list || []).find((item) => {
+      const itemKey = String(item.id || item.title || item.name || '');
+      const itemName = String(item.name || item.title || '').trim();
+      return itemKey === targetKey || (targetName && itemName === targetName);
+    }) || null;
+  },
+
   loadTotalData(forceRefresh = false) {
     const movieList = this.getMovieList();
     const showList = this.getShowList();
-    const totalList = [...movieList, ...showList];
+    const validSelectedElements = this.data.selectedElements.filter((key) => (
+      [...movieList, ...showList].some((item) => item.uniqueId === key)
+    ));
+    const totalList = this.applySelectionState([...movieList, ...showList], validSelectedElements);
 
     this.setData({
       totalList,
       loading: false,
-      selectedElements: this.data.selectedElements.filter((key) => totalList.some((item) => item.uniqueId === key))
+      selectedElements: validSelectedElements
     });
     this.updateRowCount();
 
@@ -117,6 +139,14 @@ Page({
       this.syncMovieDetails(movieList);
       this.syncShowDetails(showList);
     }
+  },
+
+  handleSelectionChange(e) {
+    const selectedElements = e.detail.value || [];
+    this.setData({
+      selectedElements,
+      totalList: this.applySelectionState(this.data.totalList, selectedElements)
+    });
   },
 
   syncMovieDetails(movieList) {
@@ -138,19 +168,37 @@ Page({
           return;
         }
 
+        const existingMovieMap = new Map(
+          (movieList || []).map((item) => [String(item.id || item.title || item.name), item])
+        );
+
         const updatedMovies = res.data.results.map((entry) => {
           if (entry && entry.data) {
-            return this.normalizeTotalItem({
+            const normalizedItem = this.normalizeTotalItem({
               ...entry.data,
               title: entry.data.title || entry.matched_title,
               name: entry.data.name || entry.matched_title
             }, 'movie');
+            const existingItem = existingMovieMap.get(String(normalizedItem.id || normalizedItem.title || normalizedItem.name))
+              || this.findExistingItemByName(movieList, normalizedItem, entry?.name_requested || entry?.matched_title || '');
+            return this.normalizeTotalItem({
+              ...normalizedItem,
+              comment: existingItem?.comment || normalizedItem.comment
+            }, 'movie');
           }
 
-          return this.normalizeTotalItem(
+          const fallbackItem = this.normalizeTotalItem(
             this.buildFallbackItem(entry?.name_requested || entry?.matched_title || '', 'movie'),
             'movie'
           );
+          const existingItem = existingMovieMap.get(String(fallbackItem.id || fallbackItem.title || fallbackItem.name))
+            || (movieList || []).find((item) => (
+              (item.name || item.title) === (entry?.name_requested || entry?.matched_title || '')
+            ));
+          return this.normalizeTotalItem({
+            ...fallbackItem,
+            comment: existingItem?.comment || fallbackItem.comment
+          }, 'movie');
         });
 
         this.updateCombinedStorage(updatedMovies, this.getShowList());
@@ -178,19 +226,37 @@ Page({
           return;
         }
 
+        const existingShowMap = new Map(
+          (showList || []).map((item) => [String(item.id || item.title || item.name), item])
+        );
+
         const updatedShows = res.data.results.map((entry) => {
           if (entry && entry.data) {
-            return this.normalizeTotalItem({
+            const normalizedItem = this.normalizeTotalItem({
               ...entry.data,
               title: entry.data.title || entry.matched_title,
               name: entry.data.name || entry.matched_title
             }, 'series');
+            const existingItem = existingShowMap.get(String(normalizedItem.id || normalizedItem.title || normalizedItem.name))
+              || this.findExistingItemByName(showList, normalizedItem, entry?.name_requested || entry?.matched_title || '');
+            return this.normalizeTotalItem({
+              ...normalizedItem,
+              comment: existingItem?.comment || normalizedItem.comment
+            }, 'series');
           }
 
-          return this.normalizeTotalItem(
+          const fallbackItem = this.normalizeTotalItem(
             this.buildFallbackItem(entry?.name_requested || entry?.matched_title || '', 'series'),
             'series'
           );
+          const existingItem = existingShowMap.get(String(fallbackItem.id || fallbackItem.title || fallbackItem.name))
+            || (showList || []).find((item) => (
+              (item.name || item.title) === (entry?.name_requested || entry?.matched_title || '')
+            ));
+          return this.normalizeTotalItem({
+            ...fallbackItem,
+            comment: existingItem?.comment || fallbackItem.comment
+          }, 'series');
         });
 
         this.updateCombinedStorage(this.getMovieList(), updatedShows);
@@ -199,7 +265,7 @@ Page({
     });
   },
 
-  selectItem(e) {
+  toggleItemSelection(e) {
     const key = e.currentTarget.dataset.key;
     if (!key) {
       return;
@@ -213,7 +279,10 @@ Page({
       selectedElements.push(key);
     }
 
-    this.setData({ selectedElements });
+    this.setData({
+      selectedElements,
+      totalList: this.applySelectionState(this.data.totalList, selectedElements)
+    });
   },
 
   toggleSelectAll() {
@@ -223,12 +292,17 @@ Page({
     }
 
     if (selectedElements.length === totalList.length) {
-      this.setData({ selectedElements: [] });
+      this.setData({
+        selectedElements: [],
+        totalList: this.applySelectionState(totalList, [])
+      });
       return;
     }
 
+    const nextSelectedElements = totalList.map((item) => item.uniqueId);
     this.setData({
-      selectedElements: totalList.map((item) => item.uniqueId)
+      selectedElements: nextSelectedElements,
+      totalList: this.applySelectionState(totalList, nextSelectedElements)
     });
   },
 
@@ -240,15 +314,15 @@ Page({
     }
 
     wx.showModal({
-      title: 'Delete',
-      content: `Delete "${item.title || item.name}"?`,
+      title: '删除确认',
+      content: `确定删除“${item.title || item.name}”吗？`,
       success: (res) => {
         if (!res.confirm) {
           return;
         }
 
         this.removeItemsByKeys([key]);
-        wx.showToast({ title: 'Deleted', icon: 'none' });
+        wx.showToast({ title: '删除成功', icon: 'none' });
       }
     });
   },
@@ -256,20 +330,20 @@ Page({
   batchDelete() {
     const { selectedElements } = this.data;
     if (!selectedElements.length) {
-      wx.showToast({ title: 'Select items first', icon: 'none' });
+      wx.showToast({ title: '请先选择条目', icon: 'none' });
       return;
     }
 
     wx.showModal({
-      title: 'Delete',
-      content: `Delete ${selectedElements.length} selected items?`,
+      title: '删除确认',
+      content: `确定删除已选中的 ${selectedElements.length} 个条目吗？`,
       success: (res) => {
         if (!res.confirm) {
           return;
         }
 
         this.removeItemsByKeys(selectedElements);
-        wx.showToast({ title: 'Deleted', icon: 'none' });
+        wx.showToast({ title: '删除成功', icon: 'none' });
       }
     });
   },
@@ -286,14 +360,17 @@ Page({
     wx.setStorageSync('alreadyList', alreadyList);
     wx.setStorageSync('totalDataChanged', true);
     this.updateCombinedStorage(movieList, showList);
-    this.setData({ selectedElements: [] });
+    this.setData({
+      selectedElements: [],
+      totalList: this.applySelectionState(this.data.totalList, [])
+    });
     this.loadTotalData(false);
   },
 
   clearAllData() {
     wx.showModal({
-      title: 'Clear',
-      content: 'Clear all movie, series and watchlist data?',
+      title: '清空确认',
+      content: '确定清空全部电影、剧集和待看数据吗？',
       success: (res) => {
         if (!res.confirm) {
           return;
@@ -310,7 +387,7 @@ Page({
           selectedElements: []
         });
         this.updateRowCount();
-        wx.showToast({ title: 'Cleared', icon: 'none' });
+        wx.showToast({ title: '已清空', icon: 'none' });
       }
     });
   }

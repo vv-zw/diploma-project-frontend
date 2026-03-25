@@ -4,7 +4,7 @@ Page({
     score: 5,
     scoreIndex: 4,
     scores: [1, 2, 3, 4, 5],
-    types: ["电影", "剧集", "综艺", "待看电影", "待看剧集"],
+    types: ["电影", "剧集",  "待看电影", "待看剧集"],
     typeIndex: 0,
     comment: "",
     elements: [
@@ -72,7 +72,6 @@ Page({
     return {
       "电影": "movieList",
       "剧集": "showList",
-      "综艺": "reactionList",
       "待看电影": "alreadyList",
       "待看剧集": "alreadyList"
     }[type] || "";

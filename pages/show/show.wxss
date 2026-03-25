@@ -9,6 +9,7 @@
 
 .search-bar,
 .top-bar,
+.result-card,
 .drama-item,
 .history-section,
 .error-msg,
@@ -52,6 +53,7 @@
 .batch-btn,
 .delete-btn,
 .clear-btn,
+.save-btn,
 .item-delete-btn {
   border-radius: 999rpx;
   font-size: 24rpx;
@@ -59,6 +61,7 @@
 }
 
 .search-btn,
+.save-btn,
 .batch-btn {
   background: linear-gradient(135deg, #d16f45 0%, #ba5b36 100%);
   color: #fff;
@@ -85,6 +88,67 @@
 .top-bar button {
   flex: 1;
   min-width: 200rpx;
+}
+
+.result-card {
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  gap: 22rpx;
+}
+
+.result-poster {
+  width: 176rpx;
+  height: 236rpx;
+  flex-shrink: 0;
+  border-radius: 22rpx;
+  background: linear-gradient(180deg, #f3e7d8 0%, #ead6bf 100%);
+  box-shadow: 0 14rpx 28rpx rgba(68, 45, 24, 0.12);
+}
+
+.result-info,
+.drama-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-title,
+.title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #24180f;
+  line-height: 1.4;
+}
+
+.result-rating,
+.rating {
+  display: block;
+  margin-top: 12rpx;
+  color: #8d5e00;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.result-genres,
+.result-year,
+.result-episodes,
+.result-region,
+.result-comment,
+.genres,
+.year,
+.episodes,
+.region,
+.comment {
+  display: block;
+  margin-top: 8rpx;
+  color: #715d4a;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.save-btn {
+  margin-top: 18rpx;
 }
 
 .error-msg,
@@ -136,33 +200,6 @@
 
 .drama-info {
   margin-top: 16rpx;
-}
-
-.title {
-  display: block;
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #24180f;
-  line-height: 1.4;
-}
-
-.rating {
-  display: block;
-  margin-top: 12rpx;
-  color: #8d5e00;
-  font-size: 24rpx;
-  font-weight: 700;
-}
-
-.genres,
-.year,
-.episodes,
-.region {
-  display: block;
-  margin-top: 8rpx;
-  color: #715d4a;
-  font-size: 24rpx;
-  line-height: 1.6;
 }
 
 .item-delete-btn {

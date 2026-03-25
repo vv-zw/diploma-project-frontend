@@ -20,44 +20,44 @@ Page({
   },
 
   buildFallbackShow(name) {
-    const title = String(name || '').trim() || 'Untitled Series';
+    const title = String(name || '').trim() || '未命名剧集';
     return {
       id: `custom_series_${Date.now()}`,
       name: title,
       title,
       coverUrl: '',
       cover_url: '',
-      rating: 'N/A',
-      genres: 'Unknown',
+      rating: '暂无评分',
+      genres: '未知',
       year: '',
       director: '',
       actors: [],
-      episodes: 'Unknown',
-      region: 'Unknown',
+      episodes: '未知',
+      region: '未知',
       type: 'series',
       content_type: 'series',
-      comment: 'No comment',
-      selectedElements: ['Unknown']
+      comment: '暂无短评',
+      selectedElements: ['未知']
     };
   },
 
   normalizeShowItem(item = {}) {
     return {
       id: item.id || `custom_series_${Date.now()}`,
-      name: item.name || item.title || 'Untitled Series',
-      title: item.title || item.name || 'Untitled Series',
+      name: item.name || item.title || '未命名剧集',
+      title: item.title || item.name || '未命名剧集',
       coverUrl: item.coverUrl || item.cover_url || item.image || '',
       cover_url: item.cover_url || item.coverUrl || item.image || '',
-      rating: item.rating || item.rate || 'N/A',
-      genres: item.genres || item.type || 'Unknown',
+      rating: item.rating || item.rate || '暂无评分',
+      genres: item.genres || item.type || '未知',
       year: item.year || item.release_date || '',
       director: item.director || '',
       actors: item.actors || [],
-      episodes: item.episodes || 'Unknown',
-      region: item.region || 'Unknown',
+      episodes: item.episodes || '未知',
+      region: item.region || '未知',
       type: item.type || 'series',
       content_type: item.content_type || 'series',
-      comment: item.comment || 'No comment'
+      comment: item.comment || '暂无短评'
     };
   },
 
@@ -65,6 +65,27 @@ Page({
     this.setData({
       rowCount: Math.ceil((this.data.showList.length || 0) / 2)
     });
+  },
+
+  applySelectionState(showList, selectedElements = this.data.selectedElements) {
+    const selectedSet = new Set(selectedElements || []);
+    return (showList || []).map((item) => {
+      const selectionKey = item.id || item.name || item.title;
+      return {
+        ...item,
+        checked: selectedSet.has(selectionKey)
+      };
+    });
+  },
+
+  findExistingShowItem(targetItem, requestedName = '') {
+    const targetKey = String(targetItem?.id || targetItem?.name || targetItem?.title || '');
+    const targetName = String(targetItem?.name || targetItem?.title || requestedName || '').trim();
+    return (this.data.showList || []).find((item) => {
+      const itemKey = String(item.id || item.name || item.title || '');
+      const itemName = String(item.name || item.title || '').trim();
+      return itemKey === targetKey || (targetName && itemName === targetName);
+    }) || null;
   },
 
   onSearchInput(e) {
@@ -122,10 +143,10 @@ Page({
         this.setData({
           searchResult: fallbackShow,
           currentShow: fallbackShow,
-          errorMsg: 'Not found in database. Created with default info.'
+          errorMsg: '数据库中未找到该剧集，已为你创建默认条目。'
         });
         this.appendSearchHistory(searchName);
-        wx.showToast({ title: 'Created default item', icon: 'none' });
+        wx.showToast({ title: '已创建默认条目', icon: 'none' });
       },
       fail: () => {
         const fallbackShow = this.buildFallbackShow(searchName);
@@ -133,10 +154,10 @@ Page({
           loading: false,
           searchResult: fallbackShow,
           currentShow: fallbackShow,
-          errorMsg: 'Request failed. Created with default info.'
+          errorMsg: '请求失败，已为你创建默认条目。'
         });
         this.appendSearchHistory(searchName);
-        wx.showToast({ title: 'Created default item', icon: 'none' });
+        wx.showToast({ title: '已创建默认条目', icon: 'none' });
       }
     });
   },
@@ -146,9 +167,13 @@ Page({
     showList = showList
       .filter((item) => item && (item.id || item.title || item.name))
       .map((item) => this.normalizeShowItem(item));
+    const selectedElements = this.data.selectedElements.filter((key) => (
+      showList.some((item) => (item.id || item.name || item.title) === key)
+    ));
 
     this.setData({
-      showList,
+      showList: this.applySelectionState(showList, selectedElements),
+      selectedElements,
       searchHistory: wx.getStorageSync('showSearchHistory') || []
     });
     this.updateRowCount();
@@ -174,24 +199,44 @@ Page({
           return;
         }
 
+        const existingShowMap = new Map(
+          (this.data.showList || []).map((item) => [String(item.id || item.name || item.title), item])
+        );
+
         const showList = res.data.results.map((entry) => {
           if (entry && entry.data) {
-            return this.normalizeShowItem({
+            const normalizedItem = this.normalizeShowItem({
               ...entry.data,
               title: entry.data.title || entry.matched_title,
               name: entry.data.name || entry.matched_title
             });
+            const existingItem = existingShowMap.get(String(normalizedItem.id || normalizedItem.name || normalizedItem.title))
+              || this.findExistingShowItem(normalizedItem, entry?.name_requested || entry?.matched_title || '');
+            return this.normalizeShowItem({
+              ...normalizedItem,
+              comment: existingItem?.comment || normalizedItem.comment
+            });
           }
-          return this.buildFallbackShow(entry?.name_requested || entry?.matched_title || '');
+          const fallbackItem = this.buildFallbackShow(entry?.name_requested || entry?.matched_title || '');
+          const existingItem = existingShowMap.get(String(fallbackItem.id || fallbackItem.name || fallbackItem.title))
+            || (this.data.showList || []).find((item) => (
+              (item.name || item.title) === (entry?.name_requested || entry?.matched_title || '')
+            ));
+          return this.normalizeShowItem({
+            ...fallbackItem,
+            comment: existingItem?.comment || fallbackItem.comment
+          });
         });
 
-        this.setData({ showList });
+        this.setData({
+          showList: this.applySelectionState(showList)
+        });
         wx.setStorageSync('showList', showList);
         this.updateRowCount();
       },
       fail: () => {
         this.setData({ detailLoading: false });
-        wx.showToast({ title: 'Batch query failed', icon: 'none' });
+        wx.showToast({ title: '批量查询失败', icon: 'none' });
       }
     });
   },
@@ -203,22 +248,22 @@ Page({
 
   clearHistory() {
     wx.showModal({
-      title: 'Confirm',
-      content: 'Clear all search history?',
+      title: '清空确认',
+      content: '确定清空全部搜索历史吗？',
       success: (res) => {
         if (!res.confirm) {
           return;
         }
         this.setData({ searchHistory: [] });
         wx.setStorageSync('showSearchHistory', []);
-        wx.showToast({ title: 'Cleared', icon: 'none' });
+        wx.showToast({ title: '已清空', icon: 'none' });
       }
     });
   },
 
   batchSearchShows() {
     if (!this.data.searchHistory.length) {
-      wx.showToast({ title: 'No history to query', icon: 'none' });
+      wx.showToast({ title: '暂无可查询的历史记录', icon: 'none' });
       return;
     }
     this.batchQueryShowDetails(this.data.searchHistory);
@@ -228,18 +273,20 @@ Page({
     const id = e.currentTarget.dataset.id;
     const name = e.currentTarget.dataset.name;
     wx.showModal({
-      title: 'Confirm',
-      content: 'Delete this series?',
+      title: '删除确认',
+      content: '确定删除这部剧集吗？',
       success: (res) => {
         if (!res.confirm) {
           return;
         }
 
         const showList = this.data.showList.filter((item) => item.id !== id && item.name !== name);
-        this.setData({ showList });
+        this.setData({
+          showList: this.applySelectionState(showList)
+        });
         wx.setStorageSync('showList', showList);
         this.updateRowCount();
-        wx.showToast({ title: 'Deleted', icon: 'none' });
+        wx.showToast({ title: '删除成功', icon: 'none' });
       }
     });
   },
@@ -247,13 +294,13 @@ Page({
   batchDelete() {
     const { selectedElements, showList } = this.data;
     if (!selectedElements.length) {
-      wx.showToast({ title: 'Select series first', icon: 'none' });
+      wx.showToast({ title: '请先选择剧集', icon: 'none' });
       return;
     }
 
     wx.showModal({
-      title: 'Confirm',
-      content: `Delete ${selectedElements.length} selected series?`,
+      title: '删除确认',
+      content: `确定删除已选中的 ${selectedElements.length} 部剧集吗？`,
       success: (res) => {
         if (!res.confirm) {
           return;
@@ -263,12 +310,12 @@ Page({
           !selectedElements.includes(item.id) && !selectedElements.includes(item.name)
         ));
         this.setData({
-          showList: newShowList,
+          showList: this.applySelectionState(newShowList, []),
           selectedElements: []
         });
         wx.setStorageSync('showList', newShowList);
         this.updateRowCount();
-        wx.showToast({ title: 'Deleted', icon: 'none' });
+        wx.showToast({ title: '删除成功', icon: 'none' });
       }
     });
   },
@@ -288,13 +335,16 @@ Page({
       selectedElements.push(value);
     }
 
-    this.setData({ selectedElements });
+    this.setData({
+      selectedElements,
+      showList: this.applySelectionState(this.data.showList, selectedElements)
+    });
   },
 
   saveToCollection() {
     const { currentShow } = this.data;
     if (!currentShow) {
-      wx.showToast({ title: 'Search a series first', icon: 'none' });
+      wx.showToast({ title: '请先搜索剧集', icon: 'none' });
       return;
     }
 
@@ -303,15 +353,17 @@ Page({
     const exists = showList.some((item) => item.id === showToSave.id || item.title === showToSave.title);
 
     if (exists) {
-      wx.showToast({ title: 'Already added', icon: 'none' });
+      wx.showToast({ title: '该剧集已收藏', icon: 'none' });
       return;
     }
 
     showList.unshift(showToSave);
-    this.setData({ showList });
+    this.setData({
+      showList: this.applySelectionState(showList)
+    });
     this.updateRowCount();
     wx.setStorageSync('showList', showList);
-    wx.showToast({ title: 'Added', icon: 'success' });
+    wx.showToast({ title: '收藏成功', icon: 'success' });
   },
 
   onPullDownRefresh() {

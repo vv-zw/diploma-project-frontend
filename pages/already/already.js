@@ -31,7 +31,8 @@ Page({
         selectedElements,
         genres: selectedElements,
         coverUrl: item.coverUrl || item.cover_url || '/images/default_movie.png',
-        cover_url: item.coverUrl || item.cover_url || '/images/default_movie.png'
+        cover_url: item.coverUrl || item.cover_url || '/images/default_movie.png',
+        comment: item.comment || '暂无短评'
       };
     });
   },
@@ -65,7 +66,7 @@ Page({
     const item = this.data.alreadyList.find((entry) => entry.id === id);
 
     wx.showModal({
-      title: '确认删除',
+      title: '删除确认',
       content: '确定要从待看列表中删除吗？',
       success: (res) => {
         if (!res.confirm) {
@@ -74,7 +75,7 @@ Page({
 
         const app = getApp();
         if (!app || typeof app.removeWatchlistItem !== 'function') {
-          wx.showToast({ title: '当前版本不支持同步删除', icon: 'none' });
+          wx.showToast({ title: '当前版本暂不支持同步删除', icon: 'none' });
           return;
         }
 

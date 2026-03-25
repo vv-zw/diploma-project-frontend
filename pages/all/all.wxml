@@ -25,7 +25,7 @@
     <view class="grid-row" wx:for="{{rowCount}}" wx:for-index="rowIndex" wx:key="rowIndex">
       <view class="grid-col">
         <view class="movie-item" wx:if="{{rowIndex * 2 < totalList.length}}">
-          <checkbox class="selector" value="{{totalList[rowIndex * 2].uniqueId}}" checked="{{selectedElements.indexOf(totalList[rowIndex * 2].uniqueId) > -1}}" bindtap="selectItem" data-key="{{totalList[rowIndex * 2].uniqueId}}" />
+          <checkbox class="selector" data-key="{{totalList[rowIndex * 2].uniqueId}}" checked="{{totalList[rowIndex * 2].checked}}" bindtap="toggleItemSelection" />
           <image class="cover-image" src="{{totalList[rowIndex * 2].coverUrl || totalList[rowIndex * 2].cover_url || '/images/default_movie.png'}}" mode="aspectFill"></image>
           <view class="movie-info">
             <text class="title">{{totalList[rowIndex * 2].title || totalList[rowIndex * 2].name}}</text>
@@ -35,14 +35,15 @@
             <text class="tags" wx:if="{{totalList[rowIndex * 2].selectedElements.length}}">
               标签：{{totalList[rowIndex * 2].selectedElements.join(' / ')}}
             </text>
+            <text class="comment" wx:if="{{totalList[rowIndex * 2].comment}}">短评：{{totalList[rowIndex * 2].comment}}</text>
           </view>
-          <button class="item-delete-btn" bindtap="deleteItem" data-key="{{totalList[rowIndex * 2].uniqueId}}">删除</button>
+          <button class="item-delete-btn" catchtap="deleteItem" data-key="{{totalList[rowIndex * 2].uniqueId}}">删除</button>
         </view>
       </view>
 
       <view class="grid-col">
         <view class="movie-item" wx:if="{{rowIndex * 2 + 1 < totalList.length}}">
-          <checkbox class="selector" value="{{totalList[rowIndex * 2 + 1].uniqueId}}" checked="{{selectedElements.indexOf(totalList[rowIndex * 2 + 1].uniqueId) > -1}}" bindtap="selectItem" data-key="{{totalList[rowIndex * 2 + 1].uniqueId}}" />
+          <checkbox class="selector" data-key="{{totalList[rowIndex * 2 + 1].uniqueId}}" checked="{{totalList[rowIndex * 2 + 1].checked}}" bindtap="toggleItemSelection" />
           <image class="cover-image" src="{{totalList[rowIndex * 2 + 1].coverUrl || totalList[rowIndex * 2 + 1].cover_url || '/images/default_movie.png'}}" mode="aspectFill"></image>
           <view class="movie-info">
             <text class="title">{{totalList[rowIndex * 2 + 1].title || totalList[rowIndex * 2 + 1].name}}</text>
@@ -52,8 +53,9 @@
             <text class="tags" wx:if="{{totalList[rowIndex * 2 + 1].selectedElements.length}}">
               标签：{{totalList[rowIndex * 2 + 1].selectedElements.join(' / ')}}
             </text>
+            <text class="comment" wx:if="{{totalList[rowIndex * 2 + 1].comment}}">短评：{{totalList[rowIndex * 2 + 1].comment}}</text>
           </view>
-          <button class="item-delete-btn" bindtap="deleteItem" data-key="{{totalList[rowIndex * 2 + 1].uniqueId}}">删除</button>
+          <button class="item-delete-btn" catchtap="deleteItem" data-key="{{totalList[rowIndex * 2 + 1].uniqueId}}">删除</button>
         </view>
       </view>
     </view>

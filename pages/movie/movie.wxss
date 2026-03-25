@@ -134,8 +134,10 @@
 .result-year,
 .result-duration,
 .result-country,
+.result-comment,
 .genres,
-.year {
+.year,
+.comment {
   display: block;
   margin-top: 8rpx;
   color: #715d4a;

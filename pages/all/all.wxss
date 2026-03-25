@@ -141,7 +141,8 @@
 .type,
 .rating,
 .year,
-.tags {
+.tags,
+.comment {
   display: block;
   margin-top: 8rpx;
   color: #715d4a;

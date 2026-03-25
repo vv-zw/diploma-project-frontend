@@ -20,44 +20,44 @@ Page({
   },
 
   buildFallbackMovie(name) {
-    const title = String(name || '').trim() || 'Untitled Movie';
+    const title = String(name || '').trim() || '未命名电影';
     return {
       id: `custom_movie_${Date.now()}`,
       name: title,
       title,
       coverUrl: '',
       cover_url: '',
-      rating: 'N/A',
-      genres: 'Unknown',
+      rating: '暂无评分',
+      genres: '未知',
       year: '',
       director: '',
       actors: [],
-      duration: 'Unknown',
-      country: 'Unknown',
+      duration: '未知',
+      country: '未知',
       type: 'movie',
       content_type: 'movie',
-      comment: 'No comment',
-      selectedElements: ['Unknown']
+      comment: '暂无短评',
+      selectedElements: ['未知']
     };
   },
 
   normalizeMovieItem(item = {}) {
     return {
       id: item.id || `custom_movie_${Date.now()}`,
-      name: item.name || item.title || 'Untitled Movie',
-      title: item.title || item.name || 'Untitled Movie',
+      name: item.name || item.title || '未命名电影',
+      title: item.title || item.name || '未命名电影',
       coverUrl: item.coverUrl || item.cover_url || item.image || '',
       cover_url: item.cover_url || item.coverUrl || item.image || '',
-      rating: item.rating || item.rate || 'N/A',
-      genres: item.genres || item.type || 'Unknown',
+      rating: item.rating || item.rate || '暂无评分',
+      genres: item.genres || item.type || '未知',
       year: item.year || item.release_date || '',
       director: item.director || '',
       actors: item.actors || [],
-      duration: item.duration || 'Unknown',
-      country: item.country || 'Unknown',
+      duration: item.duration || '未知',
+      country: item.country || '未知',
       type: item.type || 'movie',
       content_type: item.content_type || 'movie',
-      comment: item.comment || 'No comment'
+      comment: item.comment || '暂无短评'
     };
   },
 
@@ -65,6 +65,27 @@ Page({
     this.setData({
       rowCount: Math.ceil((this.data.movieList.length || 0) / 2)
     });
+  },
+
+  applySelectionState(movieList, selectedElements = this.data.selectedElements) {
+    const selectedSet = new Set(selectedElements || []);
+    return (movieList || []).map((item) => {
+      const selectionKey = item.id || item.title || item.name;
+      return {
+        ...item,
+        checked: selectedSet.has(selectionKey)
+      };
+    });
+  },
+
+  findExistingMovieItem(targetItem, requestedName = '') {
+    const targetKey = String(targetItem?.id || targetItem?.title || targetItem?.name || '');
+    const targetName = String(targetItem?.name || targetItem?.title || requestedName || '').trim();
+    return (this.data.movieList || []).find((item) => {
+      const itemKey = String(item.id || item.title || item.name || '');
+      const itemName = String(item.name || item.title || '').trim();
+      return itemKey === targetKey || (targetName && itemName === targetName);
+    }) || null;
   },
 
   onSearchInput(e) {
@@ -122,10 +143,10 @@ Page({
         this.setData({
           searchResult: fallbackMovie,
           currentMovie: fallbackMovie,
-          errorMsg: 'Not found in database. Created with default info.'
+          errorMsg: '数据库中未找到该电影，已为你创建默认条目。'
         });
         this.appendSearchHistory(searchName);
-        wx.showToast({ title: 'Created default item', icon: 'none' });
+        wx.showToast({ title: '已创建默认条目', icon: 'none' });
       },
       fail: () => {
         const fallbackMovie = this.buildFallbackMovie(searchName);
@@ -133,10 +154,10 @@ Page({
           loading: false,
           searchResult: fallbackMovie,
           currentMovie: fallbackMovie,
-          errorMsg: 'Request failed. Created with default info.'
+          errorMsg: '请求失败，已为你创建默认条目。'
         });
         this.appendSearchHistory(searchName);
-        wx.showToast({ title: 'Created default item', icon: 'none' });
+        wx.showToast({ title: '已创建默认条目', icon: 'none' });
       }
     });
   },
@@ -146,9 +167,13 @@ Page({
     movieList = movieList
       .filter((item) => item && (item.id || item.title || item.name))
       .map((item) => this.normalizeMovieItem(item));
+    const selectedElements = this.data.selectedElements.filter((key) => (
+      movieList.some((item) => (item.id || item.title || item.name) === key)
+    ));
 
     this.setData({
-      movieList,
+      movieList: this.applySelectionState(movieList, selectedElements),
+      selectedElements,
       searchHistory: wx.getStorageSync('movieSearchHistory') || []
     });
     this.updateRowCount();
@@ -174,24 +199,44 @@ Page({
           return;
         }
 
+        const existingMovieMap = new Map(
+          (this.data.movieList || []).map((item) => [String(item.id || item.title || item.name), item])
+        );
+
         const movieList = res.data.results.map((entry) => {
           if (entry && entry.data) {
-            return this.normalizeMovieItem({
+            const normalizedItem = this.normalizeMovieItem({
               ...entry.data,
               title: entry.data.title || entry.matched_title,
               name: entry.data.name || entry.matched_title
             });
+            const existingItem = existingMovieMap.get(String(normalizedItem.id || normalizedItem.title || normalizedItem.name))
+              || this.findExistingMovieItem(normalizedItem, entry?.name_requested || entry?.matched_title || '');
+            return this.normalizeMovieItem({
+              ...normalizedItem,
+              comment: existingItem?.comment || normalizedItem.comment
+            });
           }
-          return this.buildFallbackMovie(entry?.name_requested || entry?.matched_title || '');
+          const fallbackItem = this.buildFallbackMovie(entry?.name_requested || entry?.matched_title || '');
+          const existingItem = existingMovieMap.get(String(fallbackItem.id || fallbackItem.title || fallbackItem.name))
+            || (this.data.movieList || []).find((item) => (
+              (item.name || item.title) === (entry?.name_requested || entry?.matched_title || '')
+            ));
+          return this.normalizeMovieItem({
+            ...fallbackItem,
+            comment: existingItem?.comment || fallbackItem.comment
+          });
         });
 
-        this.setData({ movieList });
+        this.setData({
+          movieList: this.applySelectionState(movieList)
+        });
         wx.setStorageSync('movieList', movieList);
         this.updateRowCount();
       },
       fail: () => {
         this.setData({ detailLoading: false });
-        wx.showToast({ title: 'Batch query failed', icon: 'none' });
+        wx.showToast({ title: '批量查询失败', icon: 'none' });
       }
     });
   },
@@ -203,22 +248,22 @@ Page({
 
   clearHistory() {
     wx.showModal({
-      title: 'Confirm',
-      content: 'Clear all search history?',
+      title: '清空确认',
+      content: '确定清空全部搜索历史吗？',
       success: (res) => {
         if (!res.confirm) {
           return;
         }
         this.setData({ searchHistory: [] });
         wx.setStorageSync('movieSearchHistory', []);
-        wx.showToast({ title: 'Cleared', icon: 'none' });
+        wx.showToast({ title: '已清空', icon: 'none' });
       }
     });
   },
 
   batchSearchMovies() {
     if (!this.data.searchHistory.length) {
-      wx.showToast({ title: 'No history to query', icon: 'none' });
+      wx.showToast({ title: '暂无可查询的历史记录', icon: 'none' });
       return;
     }
     this.batchQueryMovieDetails(this.data.searchHistory);
@@ -228,18 +273,20 @@ Page({
     const id = e.currentTarget.dataset.id;
     const name = e.currentTarget.dataset.name;
     wx.showModal({
-      title: 'Confirm',
-      content: 'Delete this movie?',
+      title: '删除确认',
+      content: '确定删除这部电影吗？',
       success: (res) => {
         if (!res.confirm) {
           return;
         }
 
         const movieList = this.data.movieList.filter((item) => item.id !== id && item.name !== name);
-        this.setData({ movieList });
+        this.setData({
+          movieList: this.applySelectionState(movieList)
+        });
         wx.setStorageSync('movieList', movieList);
         this.updateRowCount();
-        wx.showToast({ title: 'Deleted', icon: 'none' });
+        wx.showToast({ title: '删除成功', icon: 'none' });
       }
     });
   },
@@ -247,13 +294,13 @@ Page({
   batchDelete() {
     const { selectedElements, movieList } = this.data;
     if (!selectedElements.length) {
-      wx.showToast({ title: 'Select movies first', icon: 'none' });
+      wx.showToast({ title: '请先选择电影', icon: 'none' });
       return;
     }
 
     wx.showModal({
-      title: 'Confirm',
-      content: `Delete ${selectedElements.length} selected movies?`,
+      title: '删除确认',
+      content: `确定删除已选中的 ${selectedElements.length} 部电影吗？`,
       success: (res) => {
         if (!res.confirm) {
           return;
@@ -263,12 +310,12 @@ Page({
           !selectedElements.includes(item.id) && !selectedElements.includes(item.name)
         ));
         this.setData({
-          movieList: newMovieList,
+          movieList: this.applySelectionState(newMovieList, []),
           selectedElements: []
         });
         wx.setStorageSync('movieList', newMovieList);
         this.updateRowCount();
-        wx.showToast({ title: 'Deleted', icon: 'none' });
+        wx.showToast({ title: '删除成功', icon: 'none' });
       }
     });
   },
@@ -284,13 +331,16 @@ Page({
       selectedElements.push(value);
     }
 
-    this.setData({ selectedElements });
+    this.setData({
+      selectedElements,
+      movieList: this.applySelectionState(this.data.movieList, selectedElements)
+    });
   },
 
   saveToCollection() {
     const { currentMovie } = this.data;
     if (!currentMovie) {
-      wx.showToast({ title: 'Search a movie first', icon: 'none' });
+      wx.showToast({ title: '请先搜索电影', icon: 'none' });
       return;
     }
 
@@ -299,15 +349,17 @@ Page({
     const exists = movieList.some((item) => item.id === movieToSave.id || item.title === movieToSave.title);
 
     if (exists) {
-      wx.showToast({ title: 'Already added', icon: 'none' });
+      wx.showToast({ title: '该电影已收藏', icon: 'none' });
       return;
     }
 
     movieList.unshift(movieToSave);
-    this.setData({ movieList });
+    this.setData({
+      movieList: this.applySelectionState(movieList)
+    });
     this.updateRowCount();
     wx.setStorageSync('movieList', movieList);
-    wx.showToast({ title: 'Added', icon: 'success' });
+    wx.showToast({ title: '收藏成功', icon: 'success' });
   },
 
   onPullDownRefresh() {

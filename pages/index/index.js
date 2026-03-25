@@ -1,6 +1,23 @@
 Page({
   data: {
-    movieList: []
+    movieList: [],
+    systemInfo: null,
+    quickStats: {
+      movie: 0,
+      series: 0,
+      watchlist: 0,
+      total: 0
+    },
+    navigationCards: []
+  },
+
+  onLoad() {
+    this.fetchSystemInfo();
+    this.loadMovieList();
+  },
+
+  onShow() {
+    this.loadMovieList();
   },
 
   getDefaultCover(item = {}) {
@@ -24,28 +41,89 @@ Page({
     });
   },
 
+  buildQuickStats(list = []) {
+    const stats = {
+      movie: 0,
+      series: 0,
+      watchlist: 0,
+      total: list.length
+    };
+
+    (list || []).forEach((item) => {
+      const contentType = String(item.content_type || item.type || '').toLowerCase();
+      if (contentType === 'movie' || item.type === '电影') {
+        stats.movie += 1;
+      } else if (contentType === 'series' || item.type === '剧集') {
+        stats.series += 1;
+      }
+    });
+
+    stats.watchlist = (wx.getStorageSync('alreadyList') || []).length;
+    return stats;
+  },
+
+  buildNavigationCards(stats) {
+    return [
+      {
+        key: 'all',
+        title: '全部内容',
+        subtitle: '统一查看和整理全部影视记录',
+        badge: `${stats.total} 条`,
+        icon: '全',
+        theme: 'all',
+        action: 'showAll'
+      },
+      {
+        key: 'movie',
+        title: '电影',
+        subtitle: '浏览电影收藏与补充详情',
+        badge: `${stats.movie} 部`,
+        icon: '影',
+        theme: 'movie',
+        action: 'filterMovie'
+      },
+      {
+        key: 'series',
+        title: '剧集',
+        subtitle: '整理剧集条目与追更内容',
+        badge: `${stats.series} 部`,
+        icon: '剧',
+        theme: 'series',
+        action: 'filterShow'
+      },
+      {
+        key: 'watchlist',
+        title: '待看清单',
+        subtitle: '管理稍后想看的电影和剧集',
+        badge: `${stats.watchlist} 条`,
+        icon: '看',
+        theme: 'watchlist',
+        action: 'filterAlready'
+      }
+    ];
+  },
+
   loadMovieList() {
     const list = wx.getStorageSync('totalMovieList') || [];
-    this.setData({ movieList: this.normalizeMovieList(list) });
-  },
-
-  onLoad() {
-    this.fetchSystemInfo();
-    this.loadMovieList();
-  },
-
-  onShow() {
-    this.loadMovieList();
+    const movieList = this.normalizeMovieList(list);
+    const quickStats = this.buildQuickStats(movieList);
+    this.setData({
+      movieList,
+      quickStats,
+      navigationCards: this.buildNavigationCards(quickStats)
+    });
   },
 
   fetchSystemInfo() {
     wx.request({
       url: 'http://localhost:5000/api/system-info',
       success: (res) => {
-        console.log('后端连接成功:', res.data);
+        if (res.data && res.data.code === 0) {
+          this.setData({ systemInfo: res.data });
+        }
       },
       fail: (err) => {
-        console.error('后端连接失败:', err);
+        console.error('backend_connection_failed', err);
         wx.showToast({
           title: '后端服务未启动',
           icon: 'none'
@@ -72,7 +150,7 @@ Page({
     this.setData({ movieList: newList });
     wx.setStorageSync('totalMovieList', newList);
     this.syncCategoryLists();
-
+    this.loadMovieList();
     wx.showToast({ title: '已删除', icon: 'none' });
   },
 
@@ -80,15 +158,13 @@ Page({
     const allItems = wx.getStorageSync('totalMovieList') || [];
     const categories = {
       电影: 'movieList',
-      剧集: 'showList',
-      综艺: 'reactionList',
-      待看: 'alreadyList'
+      剧集: 'showList'
     };
 
-    for (const [type, key] of Object.entries(categories)) {
+    Object.entries(categories).forEach(([type, key]) => {
       const filtered = allItems.filter((item) => item.type === type);
       wx.setStorageSync(key, filtered);
-    }
+    });
   },
 
   showAll() {
@@ -103,26 +179,24 @@ Page({
     wx.navigateTo({ url: '/pages/show/show' });
   },
 
-  filterReaction() {
-    wx.navigateTo({ url: '/pages/reaction/reaction' });
-  },
-
   filterAlready() {
     wx.navigateTo({ url: '/pages/already/already' });
   },
 
+  onNavCardTap(e) {
+    const action = e.currentTarget.dataset.action;
+    if (action && typeof this[action] === 'function') {
+      this[action]();
+    }
+  },
+
   handleCoverError(e) {
     const { id } = e.currentTarget.dataset;
-    const fallbackList = this.data.movieList.map((item) => {
-      if (item.id !== id) {
-        return item;
-      }
-
-      return {
-        ...item,
-        displayCover: this.getDefaultCover(item)
-      };
-    });
+    const fallbackList = this.data.movieList.map((item) => (
+      item.id !== id
+        ? item
+        : { ...item, displayCover: this.getDefaultCover(item) }
+    ));
 
     this.setData({ movieList: fallbackList });
   }

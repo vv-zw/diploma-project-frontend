@@ -28,10 +28,11 @@
     <view class="result-info">
       <view class="result-title">{{searchResult.title}}</view>
       <view class="result-rating">评分：{{searchResult.rating}}</view>
-      <view class="result-genres">{{searchResult.genres}}</view>
+      <view class="result-genres">类型：{{searchResult.genres}}</view>
       <view class="result-year">年份：{{searchResult.year || '未知'}}</view>
       <view class="result-duration" wx:if="{{searchResult.duration}}">时长：{{searchResult.duration}}</view>
       <view class="result-country" wx:if="{{searchResult.country}}">国家：{{searchResult.country}}</view>
+      <view class="result-comment" wx:if="{{searchResult.comment}}">短评：{{searchResult.comment}}</view>
       <button class="save-btn" bindtap="saveToCollection">收藏电影</button>
     </view>
   </view>
@@ -54,8 +55,7 @@
         <view class="movie-item" wx:if="{{rowIndex * 2 < movieList.length}}">
           <checkbox
             class="selector"
-            value="{{movieList[rowIndex * 2].id || movieList[rowIndex * 2].title}}"
-            checked="{{selectedElements.indexOf(movieList[rowIndex * 2].id || movieList[rowIndex * 2].title) > -1}}"
+            checked="{{movieList[rowIndex * 2].checked}}"
             bindtap="handleCheckboxTap"
             data-value="{{movieList[rowIndex * 2].id || movieList[rowIndex * 2].title}}"
           />
@@ -67,9 +67,10 @@
           ></image>
           <view class="movie-info">
             <text class="title">{{movieList[rowIndex * 2].title || movieList[rowIndex * 2].name}}</text>
-            <text class="rating">评分：{{movieList[rowIndex * 2].rating || '暂无'}}</text>
+            <text class="rating">评分：{{movieList[rowIndex * 2].rating || '暂无评分'}}</text>
             <text class="genres">类型：{{movieList[rowIndex * 2].genres || '未知'}}</text>
             <text class="year">年份：{{movieList[rowIndex * 2].year || '未知'}}</text>
+            <text class="comment" wx:if="{{movieList[rowIndex * 2].comment}}">短评：{{movieList[rowIndex * 2].comment}}</text>
           </view>
           <button
             class="item-delete-btn"
@@ -86,8 +87,7 @@
         <view class="movie-item" wx:if="{{rowIndex * 2 + 1 < movieList.length}}">
           <checkbox
             class="selector"
-            value="{{movieList[rowIndex * 2 + 1].id || movieList[rowIndex * 2 + 1].title}}"
-            checked="{{selectedElements.indexOf(movieList[rowIndex * 2 + 1].id || movieList[rowIndex * 2 + 1].title) > -1}}"
+            checked="{{movieList[rowIndex * 2 + 1].checked}}"
             bindtap="handleCheckboxTap"
             data-value="{{movieList[rowIndex * 2 + 1].id || movieList[rowIndex * 2 + 1].title}}"
           />
@@ -99,9 +99,10 @@
           ></image>
           <view class="movie-info">
             <text class="title">{{movieList[rowIndex * 2 + 1].title || movieList[rowIndex * 2 + 1].name}}</text>
-            <text class="rating">评分：{{movieList[rowIndex * 2 + 1].rating || '暂无'}}</text>
+            <text class="rating">评分：{{movieList[rowIndex * 2 + 1].rating || '暂无评分'}}</text>
             <text class="genres">类型：{{movieList[rowIndex * 2 + 1].genres || '未知'}}</text>
             <text class="year">年份：{{movieList[rowIndex * 2 + 1].year || '未知'}}</text>
+            <text class="comment" wx:if="{{movieList[rowIndex * 2 + 1].comment}}">短评：{{movieList[rowIndex * 2 + 1].comment}}</text>
           </view>
           <button
             class="item-delete-btn"

@@ -69,6 +69,7 @@ App({
       genres: this.normalizeGenres(item),
       selectedElements: this.normalizeGenres(item),
       rating: Number(item.rating || item.score || 0) || 0,
+      comment: String(item.comment || '').trim(),
       cover_url: item.cover_url || item.coverUrl || '',
       coverUrl: item.cover_url || item.coverUrl || '',
       year: item.year || '',
@@ -516,7 +517,7 @@ App({
   pollRefreshJob(jobId, options = {}) {
     const {
       interval = 1500,
-      timeout = 30000,
+      timeout = 90000,
       onSuccess,
       onFail
     } = options;

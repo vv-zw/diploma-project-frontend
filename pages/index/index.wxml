@@ -1,63 +1,63 @@
 <view class="page-container">
   <view class="hero-card">
-    <view class="hero-glow hero-glow-one"></view>
-    <view class="hero-glow hero-glow-two"></view>
-    <view class="hero-tag">MOVIE CURATION</view>
-    <view class="page-title">欢迎使用电影推荐小程序</view>
-    <view class="page-subtitle">按分类浏览、整理片单，也可以快速进入推荐页发现新内容。</view>
+    <view class="hero-orb hero-orb-left"></view>
+    <view class="hero-orb hero-orb-right"></view>
+    <view class="hero-grid">
+      <view class="hero-copy">
+        <view class="hero-tag">SCREEN LIBRARY</view>
+        <view class="page-title">你的影视主页</view>
+        <view class="page-subtitle">围绕电影、剧集与待看清单做统一整理，首页直接进入各个核心功能区。</view>
+      </view>
+      <view class="hero-stats">
+        <view class="stat-card">
+          <view class="stat-value">{{quickStats.total}}</view>
+          <view class="stat-label">全部记录</view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-value">{{quickStats.watchlist}}</view>
+          <view class="stat-label">待看条目</view>
+        </view>
+      </view>
+    </view>
   </view>
 
-  <view class="filter-card">
-    <view class="section-title">内容筛选</view>
-    <view class="section-subtitle">先按类型浏览，再进入推荐内容。</view>
-
-    <button class="primary-btn" bindtap="showAll">查看全部内容</button>
-
-    <view class="filter-grid">
-      <view class="filter-tile film" bindtap="filterMovie">
-        <view class="tile-icon">影</view>
-        <view class="tile-body">
-          <view class="tile-title">电影</view>
-          <view class="tile-text">查看电影类收藏与记录</view>
-        </view>
+  <view class="nav-section">
+    <view class="section-header">
+      <view>
+        <view class="section-title">内容导航</view>
+        <view class="section-subtitle"></view>
       </view>
+      <view class="section-badge">{{navigationCards.length}} 区</view>
+    </view>
 
-      <view class="filter-tile series" bindtap="filterShow">
-        <view class="tile-icon">剧</view>
-        <view class="tile-body">
-          <view class="tile-title">剧集</view>
-          <view class="tile-text">浏览连续剧与追更内容</view>
+    <view class="nav-grid">
+      <view
+        class="nav-card nav-card-{{item.theme}}"
+        wx:for="{{navigationCards}}"
+        wx:key="key"
+        bindtap="onNavCardTap"
+        data-action="{{item.action}}"
+      >
+        <view class="nav-card-top">
+          <view class="nav-icon">{{item.icon}}</view>
+          <view class="nav-badge">{{item.badge}}</view>
         </view>
-      </view>
-
-      <view class="filter-tile variety" bindtap="filterReaction">
-        <view class="tile-icon">综</view>
-        <view class="tile-body">
-          <view class="tile-title">综艺</view>
-          <view class="tile-text">查看综艺和节目推荐</view>
-        </view>
-      </view>
-
-      <view class="filter-tile watchlist" bindtap="filterAlready">
-        <view class="tile-icon">看</view>
-        <view class="tile-body">
-          <view class="tile-title">待看清单</view>
-          <view class="tile-text">管理之后想看的内容</view>
-        </view>
+        <view class="nav-title">{{item.title}}</view>
+        <view class="nav-subtitle">{{item.subtitle}}</view>
       </view>
     </view>
 
     <view class="action-row">
-      <button class="ghost-btn" bindtap="goToRecommend">进入推荐页</button>
-      <button class="setting-btn" bindtap="goSetting">设置</button>
+      <button class="primary-btn" bindtap="goToRecommend">进入推荐页</button>
+      <button class="secondary-btn" bindtap="goSetting">设置</button>
     </view>
   </view>
 
   <view class="list-section">
     <view class="section-header">
       <view>
-        <view class="section-title">影视列表</view>
-        <view class="section-subtitle">按最近保存的内容进行展示</view>
+        <view class="section-title">最近内容</view>
+        <view class="section-subtitle">展示已保存的电影与剧集记录。</view>
       </view>
       <view class="section-badge">{{movieList.length}} 条</view>
     </view>
@@ -65,7 +65,7 @@
     <block wx:if="{{movieList.length > 0}}">
       <block wx:for="{{movieList}}" wx:key="id">
         <view class="item-card">
-          <view class="item-decor"></view>
+          <view class="item-accent"></view>
           <view class="item-main">
             <image
               class="item-cover"
@@ -77,19 +77,16 @@
             ></image>
 
             <view class="item-content">
-              <view class="item-top">
+              <view class="item-header">
                 <view class="item-name">{{item.name}}</view>
-                <view class="item-score">{{item.score}} 星</view>
+                <view class="item-score">{{item.score}}</view>
               </view>
-
-              <view class="item-meta-row">
+              <view class="item-meta">
                 <view class="item-type">{{item.type}}</view>
               </view>
-
               <view class="item-comment">{{item.comment}}</view>
             </view>
           </view>
-
           <view class="item-footer">
             <button class="delete-btn" bindtap="deleteItem" data-id="{{item.id}}">删除</button>
           </view>
@@ -98,9 +95,9 @@
     </block>
 
     <view wx:else class="empty-card">
-      <view class="empty-mark">MOVIE</view>
+      <view class="empty-mark">LIBRARY</view>
       <view class="empty-title">还没有影视记录</view>
-      <view class="empty-text">先去添加一部想看或推荐的内容吧。</view>
+      <view class="empty-text">可以先添加一部电影或剧集，或者直接进入推荐页开始浏览。</view>
     </view>
   </view>
 

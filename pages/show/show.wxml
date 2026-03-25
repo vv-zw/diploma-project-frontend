@@ -18,6 +18,25 @@
     <button class="clear-btn" bindtap="clearHistory">清空历史</button>
   </view>
 
+  <view class="result-card" wx:if="{{searchResult}}">
+    <image
+      class="result-poster"
+      src="{{searchResult.coverUrl || searchResult.cover_url || '/images/default-show.png'}}"
+      mode="aspectFill"
+      lazy-load
+    ></image>
+    <view class="result-info">
+      <view class="result-title">{{searchResult.title}}</view>
+      <view class="result-rating">评分：{{searchResult.rating}}</view>
+      <view class="result-genres">类型：{{searchResult.genres}}</view>
+      <view class="result-year">年份：{{searchResult.year || '未知'}}</view>
+      <view class="result-episodes" wx:if="{{searchResult.episodes}}">集数：{{searchResult.episodes}}</view>
+      <view class="result-region" wx:if="{{searchResult.region}}">地区：{{searchResult.region}}</view>
+      <view class="result-comment" wx:if="{{searchResult.comment}}">短评：{{searchResult.comment}}</view>
+      <button class="save-btn" bindtap="saveToCollection">收藏剧集</button>
+    </view>
+  </view>
+
   <view class="error-msg" wx:if="{{errorMsg}}">
     {{errorMsg}}
   </view>
@@ -36,8 +55,7 @@
         <view class="drama-item" wx:if="{{rowIndex * 2 < showList.length}}">
           <checkbox
             class="selector"
-            value="{{showList[rowIndex * 2].id || showList[rowIndex * 2].name}}"
-            checked="{{selectedElements.indexOf(showList[rowIndex * 2].id || showList[rowIndex * 2].name) > -1}}"
+            checked="{{showList[rowIndex * 2].checked}}"
             bindtap="handleCheckboxTap"
             data-value="{{showList[rowIndex * 2].id || showList[rowIndex * 2].name}}"
           />
@@ -48,12 +66,13 @@
             lazy-load
           ></image>
           <view class="drama-info">
-            <text class="title">{{showList[rowIndex * 2].name || showList[rowIndex * 2].title}}</text>
-            <text class="rating">评分：{{showList[rowIndex * 2].rating || '暂无'}}</text>
+            <text class="title">{{showList[rowIndex * 2].title || showList[rowIndex * 2].name}}</text>
+            <text class="rating">评分：{{showList[rowIndex * 2].rating || '暂无评分'}}</text>
             <text class="genres">类型：{{showList[rowIndex * 2].genres || '未知'}}</text>
             <text class="year">年份：{{showList[rowIndex * 2].year || '未知'}}</text>
             <text class="episodes" wx:if="{{showList[rowIndex * 2].episodes}}">集数：{{showList[rowIndex * 2].episodes}}</text>
             <text class="region" wx:if="{{showList[rowIndex * 2].region}}">地区：{{showList[rowIndex * 2].region}}</text>
+            <text class="comment" wx:if="{{showList[rowIndex * 2].comment}}">短评：{{showList[rowIndex * 2].comment}}</text>
           </view>
           <button
             class="item-delete-btn"
@@ -70,8 +89,7 @@
         <view class="drama-item" wx:if="{{rowIndex * 2 + 1 < showList.length}}">
           <checkbox
             class="selector"
-            value="{{showList[rowIndex * 2 + 1].id || showList[rowIndex * 2 + 1].name}}"
-            checked="{{selectedElements.indexOf(showList[rowIndex * 2 + 1].id || showList[rowIndex * 2 + 1].name) > -1}}"
+            checked="{{showList[rowIndex * 2 + 1].checked}}"
             bindtap="handleCheckboxTap"
             data-value="{{showList[rowIndex * 2 + 1].id || showList[rowIndex * 2 + 1].name}}"
           />
@@ -82,12 +100,13 @@
             lazy-load
           ></image>
           <view class="drama-info">
-            <text class="title">{{showList[rowIndex * 2 + 1].name || showList[rowIndex * 2 + 1].title}}</text>
-            <text class="rating">评分：{{showList[rowIndex * 2 + 1].rating || '暂无'}}</text>
+            <text class="title">{{showList[rowIndex * 2 + 1].title || showList[rowIndex * 2 + 1].name}}</text>
+            <text class="rating">评分：{{showList[rowIndex * 2 + 1].rating || '暂无评分'}}</text>
             <text class="genres">类型：{{showList[rowIndex * 2 + 1].genres || '未知'}}</text>
             <text class="year">年份：{{showList[rowIndex * 2 + 1].year || '未知'}}</text>
             <text class="episodes" wx:if="{{showList[rowIndex * 2 + 1].episodes}}">集数：{{showList[rowIndex * 2 + 1].episodes}}</text>
             <text class="region" wx:if="{{showList[rowIndex * 2 + 1].region}}">地区：{{showList[rowIndex * 2 + 1].region}}</text>
+            <text class="comment" wx:if="{{showList[rowIndex * 2 + 1].comment}}">短评：{{showList[rowIndex * 2 + 1].comment}}</text>
           </view>
           <button
             class="item-delete-btn"

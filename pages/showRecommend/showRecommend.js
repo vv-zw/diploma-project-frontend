@@ -45,20 +45,20 @@ Page({
 
   normalizeSeriesItem(series = {}, index = 0) {
     const genres = this.normalizeGenres(series);
-    const rating = typeof series.rating === 'number' ? series.rating.toFixed(1) : (series.rating || 'N/A');
+    const rating = typeof series.rating === 'number' ? series.rating.toFixed(1) : (series.rating || '暂无评分');
     const coverUrl = series.cover_url || series.coverUrl || '/images/default_series.png';
 
     return {
       ...series,
       id: series.id || series.seriesId || `series_${Date.now()}_${index}`,
-      title: series.title || series.name || 'Untitled Series',
-      name: series.name || series.title || 'Untitled Series',
+      title: series.title || series.name || '未命名剧集',
+      name: series.name || series.title || '未命名剧集',
       rating,
       cover_url: coverUrl,
       coverUrl,
       genres,
       selectedElements: genres,
-      genresText: genres.length ? genres.join(' / ') : 'Unknown',
+      genresText: genres.length ? genres.join(' / ') : '未知',
       recommendMatchScore: this.formatMatchScore(series.recommend_match_score, series.final_score),
       type: 'series',
       content_type: 'series'
@@ -112,7 +112,7 @@ Page({
       countWeights: countWeights || {},
       recommendReasons: this.formatRecommendReasons(recommendReasons),
       loading: false,
-      error: formattedList.length ? '' : 'No recommendations yet.'
+      error: formattedList.length ? '' : '暂时没有推荐内容。'
     });
   },
 
@@ -134,13 +134,13 @@ Page({
 
         this.setData({
           loading: false,
-          error: (res.data && res.data.error) || 'Failed to load recommendations'
+          error: (res.data && res.data.error) || '加载推荐失败'
         });
       },
       fail: () => {
         this.setData({
           loading: false,
-          error: 'Failed to load recommendations'
+          error: '加载推荐失败'
         });
       }
     });
@@ -154,7 +154,7 @@ Page({
     }
 
     this.setData({
-      syncStatus: 'Refreshing...',
+      syncStatus: '刷新中...',
       loading: true,
       error: ''
     });
@@ -162,13 +162,13 @@ Page({
     app.syncAndRefresh('series', {
       silent: true,
       onSuccess: () => {
-        this.setData({ syncStatus: 'Updated' });
+        this.setData({ syncStatus: '已更新' });
         this.fetchRecommendations();
         setTimeout(() => this.setData({ syncStatus: '' }), 2500);
       },
       onFail: () => {
         this.setData({
-          syncStatus: 'Refresh failed',
+          syncStatus: '刷新失败',
           loading: false
         });
         setTimeout(() => this.setData({ syncStatus: '' }), 2500);
@@ -216,8 +216,8 @@ Page({
     }
 
     wx.showModal({
-      title: 'Not Interested',
-      content: `Hide recommendations similar to "${series.title}"?`,
+      title: '减少此类推荐',
+      content: `要减少与“${series.title}”相似的推荐吗？`,
       success: (res) => {
         if (!res.confirm) {
           return;
@@ -237,7 +237,7 @@ Page({
           .map((row) => row.filter((item) => item.id !== seriesId))
           .filter((row) => row.length > 0);
         this.setData({ gridList });
-        wx.showToast({ title: 'Recorded', icon: 'success' });
+        wx.showToast({ title: '已记录', icon: 'success' });
       }
     });
   },
@@ -246,13 +246,13 @@ Page({
     const seriesId = e.currentTarget.dataset.id;
     const series = this.getSeriesById(seriesId);
     if (!series) {
-      wx.showToast({ title: 'Series not found', icon: 'none' });
+      wx.showToast({ title: '未找到该剧集', icon: 'none' });
       return;
     }
 
     const app = getApp();
     if (!app || typeof app.addWatchlistItem !== 'function') {
-      wx.showToast({ title: 'Watchlist unavailable', icon: 'none' });
+      wx.showToast({ title: '待看功能暂不可用', icon: 'none' });
       return;
     }
 
@@ -262,9 +262,9 @@ Page({
       content_type: 'series'
     }).then(() => {
       this.loadAlreadyData();
-      wx.showToast({ title: 'Added', icon: 'success' });
+      wx.showToast({ title: '已加入待看', icon: 'success' });
     }).catch(() => {
-      wx.showToast({ title: 'Add failed', icon: 'none' });
+      wx.showToast({ title: '加入待看失败', icon: 'none' });
     });
   },
 
@@ -272,17 +272,17 @@ Page({
     const id = e.currentTarget.dataset.id;
     const app = getApp();
     if (!app || typeof app.removeWatchlistItem !== 'function') {
-      wx.showToast({ title: 'Watchlist unavailable', icon: 'none' });
+      wx.showToast({ title: '待看功能暂不可用', icon: 'none' });
       return;
     }
 
     app.removeWatchlistItem(id, 'series')
       .then(() => {
         this.loadAlreadyData();
-        wx.showToast({ title: 'Removed', icon: 'none' });
+        wx.showToast({ title: '移除成功', icon: 'none' });
       })
       .catch(() => {
-        wx.showToast({ title: 'Remove failed', icon: 'none' });
+        wx.showToast({ title: '移除失败', icon: 'none' });
       });
   },
 
@@ -316,7 +316,7 @@ Page({
           loading: false,
           searchResults: [],
           showSearch: true,
-          error: (res.data && res.data.error) || 'Search failed'
+          error: (res.data && res.data.error) || '搜索失败'
         });
       },
       fail: () => {
@@ -324,7 +324,7 @@ Page({
           loading: false,
           searchResults: [],
           showSearch: true,
-          error: 'Search failed'
+          error: '搜索失败'
         });
       }
     });
